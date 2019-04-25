@@ -7,18 +7,24 @@ text-size: func [ str ][ size-text make face [ text: str ] ]
 state-object: make object! [
     type: 'state
     name: "State"
+    radius: 50
     code: [
-	pen black
+	pen black fill-pen none
 	line-width 3
 	translate position 
-	circle 0x0 50
-	text text-position name
-    ]
+	circle 0x0 radius
+	pen none fill-pen black
+	text vectorial text-position name
+	]
     position: 100x100
     text-position: none
     weight: 1
     update-graphics: func [][
-	text-position: (text-size name ) / -2 + position
+	    text-position: (text-size name ) / -2 
+    ]
+    pos-in: func [ pos ][
+	pos: pos - position
+	return radius ** 2 > ( pos/x ** 2 + ( pos/y ** 2 ) )
     ]
 ]
 
@@ -68,10 +74,27 @@ foreach t transitions [ append drawing reduce[ 'push t/code ]]
 
 update-states states
 
-view/new layout [
-    canvas: box ivory 250x250
-		effect [ draw drawing ]
-    button "Quit" [unview]
+
+move-env: make object! [
+    current-selection: none
+    ref-pos: none
+    set 'move-state func [ new-pos /local ][
+	if current-selection [
+	    current-selection/position: new-pos - ref-pos
+	    update-transitions transitions
+	    show canvas
+	]
+    ]
+    set 'move-state-initialize func [ down-pos ][
+	foreach s states [
+	    if s/pos-in down-pos [
+		ref-pos: down-pos - s/position
+		current-selection: s
+		exit
+	    ]
+	]
+	current-selection: none
+    ]
 ]
 
 equalize: func [
@@ -110,8 +133,29 @@ equalize: func [
 
 ]
 
-equalize objects canvas/size
+view/new layout [
+    canvas: box ivory 250x250
+		effect [ draw [  push drawing ] ]
+    button "Quit" [unview]
+]
+
+canvas/feel: make canvas/feel [
+    engage: func [ face action event ][
+	switch action [
+	    down [
+		move-state-initialize event/offset
+	    ]
+	    over [
+		move-state event/offset
+	    ]
+	]
+		
+	dbg: event
+    ]
+]
+
 show canvas
+do-events
 
 
 halt
