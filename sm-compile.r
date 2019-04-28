@@ -1,4 +1,6 @@
 REBOL [
+    title: "Finite state machine design tool"
+    author: "Johan Ingvast"
 ]
 
 text-size: func [ str ][ size-text make face [ text: str ] ]
@@ -63,6 +65,7 @@ transitions: reduce [
 update-transitions: func [ transitions ][
     foreach t transitions [ t/update-graphics ]
 ]
+
 update-states: func [ states ][
     foreach s states [ s/update-graphics ]
 ]
@@ -80,15 +83,16 @@ move-env: make object! [
     ref-pos: none
     set 'move-state func [ new-pos /local ][
 	if current-selection [
-	    current-selection/position: new-pos - ref-pos
+	    current-selection/position: (transformation/face-to-canvas new-pos) - ref-pos
 	    update-transitions transitions
-	    show canvas
 	]
     ]
-    set 'move-state-initialize func [ down-pos ][
+    set 'move-state-initialize func [ down-pos /local down-in-canvas ][
+	down-in-canvas: transformation/face-to-canvas down-pos
+	? down-in-canvas
 	foreach s states [
-	    if s/pos-in down-pos [
-		ref-pos: down-pos - s/position
+	    if s/pos-in down-in-canvas [
+		ref-pos: down-in-canvas - s/position
 		current-selection: s
 		exit
 	    ]
@@ -97,61 +101,58 @@ move-env: make object! [
     ]
 ]
 
-equalize: func [
-    states size
-    /local
-	pos mass
-	min-x max-x 
-	min-y max-y 
-][
-    pos: 0x0
-    mass: 0
-    min-x: 1e6 max-x: -1e6
-    min-y: 1e6 max-y: -1e6
-    foreach s states [
-	pos: s/position * s/weight + pos
-	mass: s/weight + mass
-	min-x: minimum min-x s/position/x
-	max-x: maximum max-x s/position/x
-	min-y: minimum min-y s/position/y
-	max-y: maximum max-y s/position/y
+transformation: context [
+    canvas: none	; The canvas to operate on
+    translate: 0x0
+    scale: 1
+    offset-offset: none
+    translate-init-handler: func [ offset ][
+	offset-offset: offset - translate
     ]
-    pos: as-pair max-x + min-x / 2 max-y + min-y / 2
-    diff-x: max-x - min-x
-    diff-y: max-y - min-y
-
-    scale-x: size/x / diff-x
-    scale-y: size/y / diff-y
-
-    foreach o states [
-	o/position: o/position - pos 
-	o/position/x: o/position/x * scale-x + ( size/x / 2)
-	o/position/y: o/position/y * scale-y + ( size/y / 2)
+    translate-handler: func [ offset ][
+	translate: offset - offset-offset 
+	;translate: new-mouse - old-mouse + old-position
     ]
-    update-states states
-    update-transitions transitions
-
+    canvas-to-face-pos: func [ pos ][
+	pos + translate
+    ]
+    face-to-canvas: func [ pos ][
+	pos - translate
+    ]
 ]
 
+
 view/new layout [
-    canvas: box ivory 250x250
-		effect [ draw [  push drawing ] ]
+	canvas: box ivory 800x800
+		effect [ draw [  translate transformation/translate push drawing ] ]
     button "Quit" [unview]
 ]
 
-canvas/feel: make canvas/feel [
-    engage: func [ face action event ][
-	switch action [
-	    down [
-		move-state-initialize event/offset
-	    ]
-	    over [
-		move-state event/offset
-	    ]
+over-handler: none
+handle-events: func [ face action event /local mouser-pos ][
+    prin [ action " " ]
+    mouse-pos: event/offset
+? mouse-pos
+    switch action [
+	down [
+	    move-state-initialize mouse-pos
+	    over-handler: :move-state
 	]
-		
-	dbg: event
+	over [
+	    over-handler mouse-pos
+	    show canvas
+	]
+	alt-down [
+	    transformation/translate-init-handler mouse-pos
+	    over-handler: get in transformation 'translate-handler
+	]
     ]
+]
+
+transformation/canvas: canvas
+
+canvas/feel: make canvas/feel [
+    engage: :handle-events
 ]
 
 show canvas
