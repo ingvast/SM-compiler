@@ -34,9 +34,9 @@ transition-object: make object! [
     type: 'transfer
     name: "Trans"
     code: [
-	pen black
+	pen red
 	line-width 1
-	arrow 0x1
+	arrow 1x0
 	line from-pos to-pos
     ]
     from-pos: 0x0
@@ -44,16 +44,18 @@ transition-object: make object! [
     from-state: none
     to-state: none
     update-graphics: func [
-	/local
+	/local vector vector-length
     ][
-	to-pos: to-state/position
-	from-pos: from-state/position
+	vector: to-state/position - from-state/position
+	vector-length: square-root vector/x ** 2 + ( vector/y ** 2)
+	to-pos: to-state/position - ( vector * ( 3 + to-state/radius ) / vector-length )
+	from-pos: from-state/position + ( vector * from-state/radius / vector-length )
     ]
 ]
 
     
 states: reduce [
-    make state-object [ position: 20x20 name: "Init" ]
+    make state-object [ position: 20x20 name: "Init" radius: 30]
     make state-object [ position: 120x200 name: "Collect" ]
     make state-object [ position: 120x30 name: "Discharge" ]
 ]
@@ -104,35 +106,55 @@ move-env: make object! [
 transformation: context [
     canvas: none	; The canvas to operate on
     translate: 0x0
-    scale: 1
+    scale: 2
     offset-offset: none
     translate-init-handler: func [ offset ][
 	offset-offset: offset - translate
     ]
     translate-handler: func [ offset ][
 	translate: offset - offset-offset 
-	;translate: new-mouse - old-mouse + old-position
     ]
+
+    scale-around: func [ rel-scale around-pos ][
+	; To change scale, scale around the mouse position
+	; hence a position in the canvas corresponding to the mouse position should 
+	; be reflected back att the mouse position after the new scale
+	; canvas = ( mouse-pos - transfer-before ) / scale-before
+	; mouse-pos = canvas * scale-after + tranfer-after =
+	;		    (mouse-pos - transfer-before) / scale-before * scale-after + transfer-after
+	; transfer-after = mouse-pos - (mouse-pos - tranfer-before) * scale-after / scale-before
+	translate: probe around-pos - (around-pos - translate * rel-scale )
+	scale: scale * rel-scale
+    ]
+
+    ; face = canvas * scale + transfer
+    ; canvas = ( face - transfer ) / scale
+    
+
     canvas-to-face-pos: func [ pos ][
-	pos + translate
+	pos * scale + translate
     ]
     face-to-canvas: func [ pos ][
-	pos - translate
+	pos - translate  / scale
     ]
 ]
 
 
 view/new layout [
-	canvas: box ivory 800x800
-		effect [ draw [  translate transformation/translate push drawing ] ]
+	canvas: box ivory 800x800 "Hej a ha"
+		effect [ draw [
+			translate transformation/translate
+			scale transformation/scale transformation/scale
+			push drawing
+		] ]
     button "Quit" [unview]
 ]
 
 over-handler: none
-handle-events: func [ face action event /local mouser-pos ][
-    prin [ action " " ]
+handle-events: func [ face action event /local mouse-pos ][
+    system/view/focal-face: face
+    system/view/caret: face/text
     mouse-pos: event/offset
-? mouse-pos
     switch action [
 	down [
 	    move-state-initialize mouse-pos
@@ -140,11 +162,19 @@ handle-events: func [ face action event /local mouser-pos ][
 	]
 	over [
 	    over-handler mouse-pos
-	    show canvas
+	    show face
 	]
 	alt-down [
 	    transformation/translate-init-handler mouse-pos
 	    over-handler: get in transformation 'translate-handler
+	]
+	key [
+	    print [ mold dbg: event/key event/offset ]
+	    switch event/key [ 
+		#"+" page-up [ transformation/scale-around 1.2 event/offset - win-offset? face show face ]
+		#"-" page-down [ transformation/scale-around 1 / 1.2 event/offset - win-offset? face show face ]
+	    ]
+	    ? transformation
 	]
     ]
 ]
@@ -154,6 +184,10 @@ transformation/canvas: canvas
 canvas/feel: make canvas/feel [
     engage: :handle-events
 ]
+canvas/font/valign: 'top
+canvas/font/align: 'left
+
+canvas/text: ""
 
 show canvas
 do-events
