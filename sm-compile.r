@@ -5,42 +5,83 @@ REBOL [
 
 text-size: func [ str ][ size-text make face [ text: str ] ]
 
-
 state-object: make object! [
     type: 'state
+    id: none
     name: "State"
+    entry-code: {}
+    exit-code: {}
     radius: 50
-    code: [
-	pen black fill-pen none
+    draw-code: [
+	pen pencolor fill-pen none
 	line-width 3
 	translate position 
 	circle 0x0 radius
-	pen none fill-pen black
+	pen none fill-pen textcolor
 	text vectorial text-position name
 	]
     position: 100x100
     text-position: none
-    weight: 1
+    pencolor: black
+    textcolor: black
     update-graphics: func [][
+	    pencolor: pick [ 255.30.30 10.10.10 ] highlight
 	    text-position: (text-size name ) / -2 
     ]
+    highlight: off
     pos-in: func [ pos ][
 	pos: pos - position
 	return radius ** 2 > ( pos/x ** 2 + ( pos/y ** 2 ) )
     ]
+    properties-layout: [
+	origin 0x0
+	across
+	field bold font[ size: 20 ] name edge [ size: 0x0 ]
+	    [ set-state-name self value update-graphics show canvas ]
+	return
+	tabs [ 75 ]
+	space 2x2
+	text "Entry" return
+	    area entry-code 150x200 ;[ entry-code: value]
+	return
+	text "Exit" return
+	    area exit-code 150x200 ;[ exit-code: value ]
+	return
+	text "Radius" tab field to-string radius [
+		    radius: any [ attempt [ to-decimal do value ] 50 ]
+		    update-graphics
+		    update-transitions transitions
+		    face/text: radius
+		    show [ canvas  face ]
+	]
+	return
+	text "Text colour" tab field to-string textcolor [
+			textcolor: any [ attempt [ to-tuple do value ] black ]
+			update-graphics face/text: textcolor show [ canvas face]
+		    ]
+    ]
+    
 ]
 
+rot-90: func [ vect ][ as-pair vect/2 negate vect/1 ]
 transition-object: make object! [
-    type: 'transfer
+    type: 'transition
     name: "Trans"
-    code: [
-	pen red
+    draw-code: [
+	pen red 
 	line-width 1
+	fill-pen none
 	arrow 1x0
-	line from-pos to-pos
+	curve  from-pos knot1 knot2 to-pos
+	;arrow 0x0
+	;line knot1 knot2
+	pen none fill-pen black
+	translate knot1
+	text vectorial 0x0 name
     ]
     from-pos: 0x0
     to-pos: 0x0
+    knot1: knot2: 0x0
     from-state: none
     to-state: none
     update-graphics: func [
@@ -50,37 +91,82 @@ transition-object: make object! [
 	vector-length: square-root vector/x ** 2 + ( vector/y ** 2)
 	to-pos: to-state/position - ( vector * ( 3 + to-state/radius ) / vector-length )
 	from-pos: from-state/position + ( vector * from-state/radius / vector-length )
+
+	; make it slightly bent
+	vector: to-pos - from-pos
+	vector-length: square-root vector/x ** 2 + ( vector/y ** 2)
+	knot1: vector * 0.4 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
+	knot2: vector * 0.6 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
     ]
 ]
-
     
-states: reduce [
-    make state-object [ position: 20x20 name: "Init" radius: 30]
-    make state-object [ position: 120x200 name: "Collect" ]
-    make state-object [ position: 120x30 name: "Discharge" ]
+
+states: copy []
+set-state-name: func [
+    [ catch ]
+    state {State or id}
+    name {New name}
+    /local s 
+][
+    unless object? state [ state: select states state ]
+    foreach [id s] states [
+	unless  s = state  [
+	    if s/name = name  [
+		throw make error! rejoin [ 
+			{Name already occupied by:} mold s
+		]
+	    ]
+	]
+    ] 
+    state/name: name
 ]
 
-transitions: reduce [
-    make transition-object [ from-state: states/1 to-state: states/2  update-graphics ]
-    make transition-object [ from-state: states/2 to-state: states/3  update-graphics ]
+new-state-node: func [
+    {Creates a node and adds to the SM}
+    spec /local
+	state new-id id-code
+][
+    new-id: round random 2 ** 30
+    state: make state-object [ name: join "S" to-string new-id ]
+    state: make state spec
+    state: make state compose [ id: new-id ]
+    set-state-name state state/name ; Will throw an error if name occupied
+    repend states [ new-id state ]
 ]
+
+remove-state-node: func [ state ][
+    remove/part back find states state 2
+    update-drawing
+]
+
 update-transitions: func [ transitions ][
     foreach t transitions [ t/update-graphics ]
 ]
 
 update-states: func [ states ][
-    foreach s states [ s/update-graphics ]
+    foreach [id s ] states [ s/update-graphics ]
 ]
     
 
-drawing: copy []
-foreach s states [ append drawing reduce [ 'push s/code ] ]
-foreach t transitions [ append drawing reduce[ 'push t/code ]]
+update-drawing: does [ 
+    drawing-states: copy []
+    drawing-transitions: copy []
+    foreach [id s ] states [ append drawing-states reduce [ 'push s/draw-code ] ]
+    foreach t transitions [ append drawing-states reduce[ 'push t/draw-code ]]
+    update-states states
+    update-transitions transitions
+]
 
-update-states states
+find-mouse-hit: func [ objects pos ][
+    foreach [id s ] states [
+	if s/pos-in pos [
+	    return s
+	]
+    ]
+    none
+]
 
-
-move-env: make object! [
+make object! [
     current-selection: none
     ref-pos: none
     set 'move-state func [ new-pos /local ][
@@ -91,15 +177,10 @@ move-env: make object! [
     ]
     set 'move-state-initialize func [ down-pos /local down-in-canvas ][
 	down-in-canvas: transformation/face-to-canvas down-pos
-	? down-in-canvas
-	foreach s states [
-	    if s/pos-in down-in-canvas [
-		ref-pos: down-in-canvas - s/position
-		current-selection: s
-		exit
-	    ]
+	current-selection: find-mouse-hit states down-in-canvas
+	if current-selection [
+	    ref-pos: down-in-canvas - current-selection/position
 	]
-	current-selection: none
     ]
 ]
 
@@ -123,12 +204,12 @@ transformation: context [
 	; mouse-pos = canvas * scale-after + tranfer-after =
 	;		    (mouse-pos - transfer-before) / scale-before * scale-after + transfer-after
 	; transfer-after = mouse-pos - (mouse-pos - tranfer-before) * scale-after / scale-before
-	translate: probe around-pos - (around-pos - translate * rel-scale )
+	translate: around-pos - (around-pos - translate * rel-scale )
 	scale: scale * rel-scale
     ]
 
     ; face = canvas * scale + transfer
-    ; canvas = ( face - transfer ) / scale
+    ; canvas = ( face -transfer ) / scale
     
 
     canvas-to-face-pos: func [ pos ][
@@ -139,17 +220,39 @@ transformation: context [
     ]
 ]
 
-
-view/new layout [
-	canvas: box ivory 800x800 "Hej a ha"
-		effect [ draw [
-			translate transformation/translate
-			scale transformation/scale transformation/scale
-			push drawing
-		] ]
-    button "Quit" [unview]
+states: copy [
 ]
 
+new-state-node [ position: 20x20 name: "Init" radius: 30]
+new-state-node [ position: 120x200 name: "Collect" ]
+new-state-node [ position: 120x30 name: "Discharge" ]
+
+
+transitions: reduce [
+    make transition-object [ from-state: states/2 to-state: states/4  update-graphics ]
+    make transition-object [ from-state: states/4 to-state: states/6  update-graphics ]
+]
+
+update-drawing
+
+
+view/new layout [
+    across 
+    canvas: box ivory 800x800 "" top left
+	    edge  [ size: 1x1 colour: black ]
+	    effect [ draw [
+		    translate transformation/translate
+		    scale transformation/scale transformation/scale
+		    push drawing-transitions
+		    push drawing-states
+	    ] ]
+    properties: panel pink 150x800 [] edge [ size: 1x1 colour: black ]
+    return
+    button "Save" #"^s" [ save ]
+    button "Quit" #"^q" [unview]
+]
+
+selected: none
 over-handler: none
 handle-events: func [ face action event /local mouse-pos ][
     system/view/focal-face: face
@@ -159,6 +262,18 @@ handle-events: func [ face action event /local mouse-pos ][
 	down [
 	    move-state-initialize mouse-pos
 	    over-handler: :move-state
+
+	    if state: find-mouse-hit states transformation/face-to-canvas mouse-pos [
+
+		if selected [ selected/highlight: off selected/update-graphics ]
+		selected: state 
+		selected/highlight: on
+		selected/update-graphics
+
+		properties/pane: layout state/properties-layout
+		properties/pane/offset: 0x0
+		show [ canvas properties]
+	    ]
 	]
 	over [
 	    over-handler mouse-pos
@@ -169,12 +284,23 @@ handle-events: func [ face action event /local mouse-pos ][
 	    over-handler: get in transformation 'translate-handler
 	]
 	key [
-	    print [ mold dbg: event/key event/offset ]
+	    mouse-pos: event/offset - win-offset? face
 	    switch event/key [ 
-		#"+" page-up [ transformation/scale-around 1.2 event/offset - win-offset? face show face ]
-		#"-" page-down [ transformation/scale-around 1 / 1.2 event/offset - win-offset? face show face ]
+		#"+" page-up [ transformation/scale-around 1.2 mouse-pos show face ]
+		#"-" page-down [ transformation/scale-around 1 / 1.2 mouse-pos show face ]
+		#"0" [ transformation/scale-around 1 / transformation/scale mouse-pos show face ]
+		#"s" [  new-state-node [
+			    position: transformation/face-to-canvas mouse-pos
+			]
+			update-drawing show face
+		    ]
+		#"t" [ new-transition transformation/face-to-canvas mouse-pos update-drawing show face]
+		#"^~" [ dbg: selected if all [ selected selected/type = 'state ] [
+			    remove-state-node selected
+			    show canvas
+			    properties/pane: none show properties
+			    selected: none] ]
 	    ]
-	    ? transformation
 	]
     ]
 ]
@@ -184,8 +310,6 @@ transformation/canvas: canvas
 canvas/feel: make canvas/feel [
     engage: :handle-events
 ]
-canvas/font/valign: 'top
-canvas/font/align: 'left
 
 canvas/text: ""
 
