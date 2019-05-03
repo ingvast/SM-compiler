@@ -62,11 +62,33 @@ state-object: make object! [
     ]
     
 ]
+id?: :integer?
+
+states: copy []
+
+new-state-node: func [
+    {Creates a node and adds to the SM}
+    spec /local
+	state new-id id-code
+][
+    new-id: round random 2 ** 30
+    state: make state-object [ name: join "S" to-string new-id ]
+    state: make state spec
+    state: make state compose [ id: new-id ]
+    set-state-name state state/name ; Will throw an error if name occupied
+    repend states [ new-id state ]
+]
+
+remove-state-node: func [ state ][
+    remove/part back find states state 2
+    update-drawing
+]
+
 
 rot-90: func [ vect ][ as-pair vect/2 negate vect/1 ]
 transition-object: make object! [
     type: 'transition
-    name: "Trans"
+    label: transition-code: ""
     draw-code: [
 	pen red 
 	line-width 1
@@ -77,7 +99,7 @@ transition-object: make object! [
 	;line knot1 knot2
 	pen none fill-pen black
 	translate knot1
-	text vectorial 0x0 name
+	text vectorial 0x0 label
     ]
     from-pos: 0x0
     to-pos: 0x0
@@ -97,11 +119,24 @@ transition-object: make object! [
 	vector-length: square-root vector/x ** 2 + ( vector/y ** 2)
 	knot1: vector * 0.4 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
 	knot2: vector * 0.6 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
+
+	if any [ not label empty? label ] [ label: transition-code ]
     ]
 ]
-    
 
-states: copy []
+transitions: copy []
+
+new-transition: func [
+    spec
+    /local tran
+][
+    tran: make transition-object spec
+    if id? tran/from-state [ tran/from-state: select states tran/from-state ]
+    if id? tran/to-state [ tran/to-state: select states tran/to-state ]
+    tran/update-graphics
+    append transitions tran
+]
+       
 set-state-name: func [
     [ catch ]
     state {State or id}
@@ -119,24 +154,6 @@ set-state-name: func [
 	]
     ] 
     state/name: name
-]
-
-new-state-node: func [
-    {Creates a node and adds to the SM}
-    spec /local
-	state new-id id-code
-][
-    new-id: round random 2 ** 30
-    state: make state-object [ name: join "S" to-string new-id ]
-    state: make state spec
-    state: make state compose [ id: new-id ]
-    set-state-name state state/name ; Will throw an error if name occupied
-    repend states [ new-id state ]
-]
-
-remove-state-node: func [ state ][
-    remove/part back find states state 2
-    update-drawing
 ]
 
 update-transitions: func [ transitions ][
@@ -228,10 +245,8 @@ new-state-node [ position: 120x200 name: "Collect" ]
 new-state-node [ position: 120x30 name: "Discharge" ]
 
 
-transitions: reduce [
-    make transition-object [ from-state: states/2 to-state: states/4  update-graphics ]
-    make transition-object [ from-state: states/4 to-state: states/6  update-graphics ]
-]
+new-transition  [from-state: states/1 to-state: states/3  transition-code: "true" ]
+new-transition  [from-state: states/4 to-state: states/6  transition-code: "true" ]
 
 update-drawing
 
