@@ -3,6 +3,8 @@ REBOL [
     author: "Johan Ingvast"
 ]
 
+do %vid-extension.r
+
 text-size: func [ str ][ size-text make face [ text: str ] ]
 
 state-object: make object! [
@@ -11,7 +13,6 @@ state-object: make object! [
     name: "State"
     entry-code: {}
     exit-code: {}
-    radius: 50
     draw-code: [
 	pen pencolor fill-pen none
 	line-width 3
@@ -20,6 +21,9 @@ state-object: make object! [
 	pen none fill-pen textcolor
 	text vectorial text-position name
 	]
+    to-transitions: []
+    from-transitions: []
+    radius: 50
     position: 100x100
     text-position: none
     pencolor: black
@@ -59,6 +63,16 @@ state-object: make object! [
 			textcolor: any [ attempt [ to-tuple do value ] black ]
 			update-graphics face/text: textcolor show [ canvas face]
 		    ]
+	dyn-list 150x100 [ text 150 "hej"] data (
+	    use [ lst ][
+		lst: copy []
+		? self
+		foreach i from-transitions [
+		    append/only lst reduce [ i/transition-clause ]
+		]
+		reduce [ lst ]
+	    ]
+	)
     ]
     
 ]
@@ -88,9 +102,12 @@ remove-state-node: func [ state ][
 rot-90: func [ vect ][ as-pair vect/2 negate vect/1 ]
 transition-object: make object! [
     type: 'transition
-    label: transition-code: ""
+    label: transition-clause: ""
+    from-state: none
+    to-state: none
+
     draw-code: [
-	pen red 
+	pen arrowcolor 
 	line-width 1
 	fill-pen none
 	arrow 1x0
@@ -104,8 +121,8 @@ transition-object: make object! [
     from-pos: 0x0
     to-pos: 0x0
     knot1: knot2: 0x0
-    from-state: none
-    to-state: none
+    arrowcolor: black
+    highlight: off
     update-graphics: func [
 	/local vector vector-length
     ][
@@ -120,7 +137,25 @@ transition-object: make object! [
 	knot1: vector * 0.4 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
 	knot2: vector * 0.6 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
 
-	if any [ not label empty? label ] [ label: transition-code ]
+	if any [ not label empty? label ] [ label: transition-clause ]
+	arrowcolor: pick [ 255.30.30 10.10.10 ] highlight
+    ]
+    properties-layout: [
+	origin 0x0
+	across
+	;field bold font[ size: 20 ] name edge [ size: 0x0 ]
+	;    [ set-state-name self value update-graphics show canvas ]
+	;return
+	tabs [ 75 ]
+	space 2x2
+	text "From state" return
+	    text from-state/name  [ properties-dialog from-state ]
+	return
+	text "To state" return
+	    text to-state/name  [ properties-dialog to-state ]
+	return
+	text "Transition clause" return
+	    area transition-clause 150x200 ;[ exit-code: value ]
     ]
 ]
 
@@ -133,8 +168,17 @@ new-transition: func [
     tran: make transition-object spec
     if id? tran/from-state [ tran/from-state: select states tran/from-state ]
     if id? tran/to-state [ tran/to-state: select states tran/to-state ]
+    append tran/from-state/from-transitions tran
+    append tran/to-state/to-transitions     tran
+
     tran/update-graphics
     append transitions tran
+
+]
+
+properties-dialog: func [ object ][
+    properties/pane: layout probe compose dbg: object/properties-layout
+    properties/pane/offset: 0x0
 ]
        
 set-state-name: func [
@@ -245,8 +289,8 @@ new-state-node [ position: 120x200 name: "Collect" ]
 new-state-node [ position: 120x30 name: "Discharge" ]
 
 
-new-transition  [from-state: states/1 to-state: states/3  transition-code: "true" ]
-new-transition  [from-state: states/4 to-state: states/6  transition-code: "true" ]
+new-transition  [from-state: states/1 to-state: states/3  transition-clause: "true" ]
+new-transition  [from-state: states/4 to-state: states/6  transition-clause: "true" ]
 
 update-drawing
 
@@ -285,8 +329,7 @@ handle-events: func [ face action event /local mouse-pos ][
 		selected/highlight: on
 		selected/update-graphics
 
-		properties/pane: layout state/properties-layout
-		properties/pane/offset: 0x0
+		properties-dialog selected
 		show [ canvas properties]
 	    ]
 	]
