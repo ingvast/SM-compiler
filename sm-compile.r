@@ -63,12 +63,47 @@ state-object: make object! [
 			textcolor: any [ attempt [ to-tuple do value ] black ]
 			update-graphics face/text: textcolor show [ canvas face]
 		    ]
-	dyn-list 150x100 [ text 150 "hej"] data (
+	return
+	text "Reach transitions here" return
+	dyn-list 150x100 [ across space 0x0 
+		text 80 "from state" edge[ color: black size: 0x1]
+		    [   properties-dialog face/parent-face/pane/3/text
+			select-object face/parent-face/pane/3/text
+			show [ canvas properties ]
+		    ]
+		text 60 "clause" edge[color: black size: 0x1]
+		    [   properties-dialog face/parent-face/pane/3/text
+			select-object face/parent-face/pane/3/text
+			show [ canvas properties ]
+		    ]
+		text 0x0 "object"  with [ show?: off ]
+	    ] data (
 	    use [ lst ][
 		lst: copy []
-		? self
+		foreach i to-transitions [
+		    append/only lst reduce [ any [ i/from-state/name i/from-state/id ] i/transition-clause i ]
+		]
+		reduce [ lst ]
+	    ]
+	)
+	text "Leave transition" return
+	dyn-list 150x100 [ across space 0x0 
+		text 80 "To state" edge[ color: black size: 0x1]
+		    [   properties-dialog face/parent-face/pane/3/text
+			select-object face/parent-face/pane/3/text
+			show [ canvas properties ]
+		    ]
+		text 60 "clause" edge[color: black size: 0x1]
+		    [   properties-dialog face/parent-face/pane/3/text
+			select-object face/parent-face/pane/3/text
+			show [ canvas properties ]
+		    ]
+		text 0x0 "object"  with [ show?: off ]
+	    ] data (
+	    use [ lst ][
+		lst: copy []
 		foreach i from-transitions [
-		    append/only lst reduce [ i/transition-clause ]
+		    append/only lst reduce [ any [ i/to-state/name i/to-state/id ] i/transition-clause i ]
 		]
 		reduce [ lst ]
 	    ]
@@ -102,6 +137,7 @@ remove-state-node: func [ state ][
 rot-90: func [ vect ][ as-pair vect/2 negate vect/1 ]
 transition-object: make object! [
     type: 'transition
+    id: none
     label: transition-clause: ""
     from-state: none
     to-state: none
@@ -149,13 +185,21 @@ transition-object: make object! [
 	tabs [ 75 ]
 	space 2x2
 	text "From state" return
-	    text from-state/name  [ properties-dialog from-state ]
+	    text from-state/name  [
+		select-object from-state
+		properties-dialog from-state
+		show [ canvas properties ]
+	    ]
 	return
 	text "To state" return
-	    text to-state/name  [ properties-dialog to-state ]
+	    text to-state/name  [
+		select-object to-state
+		properties-dialog to-state
+		show [ canvas properties ]
+	    ]
 	return
 	text "Transition clause" return
-	    area transition-clause 150x200 ;[ exit-code: value ]
+	    area transition-clause 150x200 [ show canvas ]
     ]
 ]
 
@@ -177,7 +221,7 @@ new-transition: func [
 ]
 
 properties-dialog: func [ object ][
-    properties/pane: layout probe compose dbg: object/properties-layout
+    properties/pane: layout compose object/properties-layout
     properties/pane/offset: 0x0
 ]
        
@@ -231,7 +275,7 @@ make object! [
     current-selection: none
     ref-pos: none
     set 'move-state func [ new-pos /local ][
-	if current-selection [
+	if all [ current-selection current-selection/type = 'state ] [
 	    current-selection/position: (transformation/face-to-canvas new-pos) - ref-pos
 	    update-transitions transitions
 	]
@@ -305,13 +349,24 @@ view/new layout [
 		    push drawing-transitions
 		    push drawing-states
 	    ] ]
-    properties: panel pink 150x800 [] edge [ size: 1x1 colour: black ]
+    properties: panel 150x800 [] edge [ size: 1x1 colour: black ]
     return
     button "Save" #"^s" [ save ]
     button "Quit" #"^q" [unview]
 ]
 
 selected: none
+select-object: func [ object ][
+    if selected [
+	selected/highlight: off
+	selected/update-graphics
+    ]
+    selected: object
+    if object [
+	selected/highlight: on
+	selected/update-graphics
+    ]
+]
 over-handler: none
 handle-events: func [ face action event /local mouse-pos ][
     system/view/focal-face: face
@@ -323,12 +378,7 @@ handle-events: func [ face action event /local mouse-pos ][
 	    over-handler: :move-state
 
 	    if state: find-mouse-hit states transformation/face-to-canvas mouse-pos [
-
-		if selected [ selected/highlight: off selected/update-graphics ]
-		selected: state 
-		selected/highlight: on
-		selected/update-graphics
-
+		select-object state
 		properties-dialog selected
 		show [ canvas properties]
 	    ]
@@ -353,11 +403,15 @@ handle-events: func [ face action event /local mouse-pos ][
 			update-drawing show face
 		    ]
 		#"t" [ new-transition transformation/face-to-canvas mouse-pos update-drawing show face]
-		#"^~" [ dbg: selected if all [ selected selected/type = 'state ] [
+		#"^~" [	 ; Delete node
+			if all [ selected selected/type = 'state ] [
 			    remove-state-node selected
 			    show canvas
-			    properties/pane: none show properties
-			    selected: none] ]
+			    properties/pane: none
+			    show properties
+			    select-object none
+			]
+		    ]
 	    ]
 	]
     ]
@@ -372,7 +426,10 @@ canvas/feel: make canvas/feel [
 canvas/text: ""
 
 show canvas
-do-events
+if error? e: try [ do-events ] [
+    e: disarm e 
+    ? e
+]
 
 
 halt
