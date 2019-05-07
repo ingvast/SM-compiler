@@ -184,19 +184,19 @@ transition-object: make object! [
 	;return
 	tabs [ 75 ]
 	space 2x2
-	text "From state" return
-	    text from-state/name  [
-		select-object from-state
-		properties-dialog from-state
-		show [ canvas properties ]
-	    ]
+	text bold from-state/name  [
+	    select-object from-state
+	    properties-dialog from-state
+	    show [ canvas properties ]
+	]
 	return
-	text "To state" return
-	    text to-state/name  [
-		select-object to-state
-		properties-dialog to-state
-		show [ canvas properties ]
-	    ]
+	box 100x15 effect[draw[ pen black arrow 1x0 line 10x0 10x15 ]]
+	return
+	text bold to-state/name  [
+	    select-object to-state
+	    properties-dialog to-state
+	    show [ canvas properties ]
+	]
 	return
 	text "Transition clause" return
 	    area transition-clause 150x200 [ show canvas ]
@@ -372,24 +372,25 @@ handle-events: func [ face action event /local mouse-pos ][
     system/view/focal-face: face
     system/view/caret: face/text
     mouse-pos: event/offset
+    if event/key [ print mold event/key ]
     switch action [
 	down [
 	    move-state-initialize mouse-pos
 	    over-handler: :move-state
 
-	    if state: find-mouse-hit states transformation/face-to-canvas mouse-pos [
+	    either state: find-mouse-hit states transformation/face-to-canvas mouse-pos [
 		select-object state
 		properties-dialog selected
 		show [ canvas properties]
+	    ] [
+		transformation/translate-init-handler mouse-pos
+		over-handler: get in transformation 'translate-handler
 	    ]
+	    
 	]
 	over [
 	    over-handler mouse-pos
 	    show face
-	]
-	alt-down [
-	    transformation/translate-init-handler mouse-pos
-	    over-handler: get in transformation 'translate-handler
 	]
 	key [
 	    mouse-pos: event/offset - win-offset? face
@@ -412,6 +413,7 @@ handle-events: func [ face action event /local mouse-pos ][
 			    select-object none
 			]
 		    ]
+		#"^[" [ select-object none properties/pane: none show [ canvas properties ] ]
 	    ]
 	]
     ]
