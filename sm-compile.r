@@ -86,6 +86,7 @@ state-object: make object! [
 		reduce [ lst ]
 	    ]
 	)
+	return
 	text "Leave transition" return
 	dyn-list 150x100 [ across space 0x0 
 		text 80 "To state" edge[ color: black size: 0x1]
@@ -126,6 +127,7 @@ new-state-node: func [
     state: make state compose [ id: new-id ]
     set-state-name state state/name ; Will throw an error if name occupied
     repend states [ new-id state ]
+    state
 ]
 
 remove-state-node: func [ state ][
@@ -369,11 +371,11 @@ select-object: func [ object ][
 	selected/update-graphics
     ]
 ]
-over-handler: none
+
 handle-events: func [ face action event
 			/local mouse-pos transition state
 ][
-    local: [ state-from none state-to none ]  ; Static variables
+    local: [ over-handler none state-from none state-to none ]  ; Static variables
     system/view/focal-face: face
     system/view/caret: face/text
     mouse-pos: event/offset
@@ -381,7 +383,7 @@ handle-events: func [ face action event
     switch probe action [
 	down [
 	    move-state-initialize mouse-pos
-	    over-handler: :move-state
+	    local/over-handler: :move-state
 
 	    either state: find-mouse-hit states transformation/face-to-canvas mouse-pos [
 		select-object state
@@ -389,17 +391,17 @@ handle-events: func [ face action event
 		show [ canvas properties]
 	    ] [
 		transformation/translate-init-handler mouse-pos
-		over-handler: get in transformation 'translate-handler
+		local/over-handler: get in transformation 'translate-handler
 	    ]
 	    
 	]
 	over [
-	    over-handler mouse-pos
+	    local/over-handler mouse-pos
 	    show face
 	]
 	alt-down [
 	    local/state-from: find-mouse-hit states transformation/face-to-canvas mouse-pos
-	    over-handler: none
+	    local/over-handler: none
 	]
 	alt-up [
 	    local/state-to: find-mouse-hit states transformation/face-to-canvas mouse-pos
@@ -417,11 +419,26 @@ handle-events: func [ face action event
 		#"+" page-up [ transformation/scale-around 1.2 mouse-pos show face ]
 		#"-" page-down [ transformation/scale-around 1 / 1.2 mouse-pos show face ]
 		#"0" [ transformation/scale-around 1 / transformation/scale mouse-pos show face ]
-		#"s" [  new-state-node [
+		#"s" [  select-object new-state-node [
 			    position: transformation/face-to-canvas mouse-pos
 			]
-			update-canvas show face
+			update-canvas
+			properties-dialog selected
+			show [ face canvas ]
 		    ]
+		#"t" [
+		    if all [ selected selected/type = 'state ] [
+			local/state-to: find-mouse-hit states transformation/face-to-canvas mouse-pos
+			if local/state-to [
+			    transition: new-transition [ from-state: selected to-state: local/state-to ]
+			    update-canvas
+			    select-object transition
+			    properties-dialog transition
+			    show [ canvas properties ]
+			]
+		    ]
+		]
+			
 		#"^~" [	 ; Delete node
 			if all [ selected selected/type = 'state ] [
 			    remove-state-node selected
