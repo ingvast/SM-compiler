@@ -1,0 +1,21 @@
+SM-COMPILER
+Format 0.1
+
+states
+[
+    name: "init"
+    id: 1
+    position: 100x100
+]
+[
+    name: "one"
+    id: 2
+    position: 100x100
+]
+
+transitions
+[
+    label: "wow"
+    from-state: 1
+    to-state: 2
+]
