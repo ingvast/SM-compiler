@@ -130,7 +130,7 @@ new-state-node: func [
 
 remove-state-node: func [ state ][
     remove/part back find states state 2
-    update-drawing
+    update-canvas
 ]
 
 
@@ -164,14 +164,16 @@ transition-object: make object! [
     ][
 	vector: to-state/position - from-state/position
 	vector-length: square-root vector/x ** 2 + ( vector/y ** 2)
-	to-pos: to-state/position - ( vector * ( 3 + to-state/radius ) / vector-length )
-	from-pos: from-state/position + ( vector * from-state/radius / vector-length )
+	if to-state/radius + from-state/radius + 1 < vector-length [
+	    to-pos: to-state/position - ( vector * ( 3 + to-state/radius ) / vector-length )
+	    from-pos: from-state/position + ( vector * from-state/radius / vector-length )
 
-	; make it slightly bent
-	vector: to-pos - from-pos
-	vector-length: square-root vector/x ** 2 + ( vector/y ** 2)
-	knot1: vector * 0.4 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
-	knot2: vector * 0.6 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
+	    ; make it slightly bent
+	    vector: to-pos - from-pos
+	    vector-length: square-root vector/x ** 2 + ( vector/y ** 2)
+	    knot1: vector * 0.4 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
+	    knot2: vector * 0.6 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
+	]
 
 	if any [ not label empty? label ] [ label: transition-clause ]
 	arrowcolor: pick [ 255.30.30 10.10.10 ] highlight
@@ -217,7 +219,7 @@ new-transition: func [
 
     tran/update-graphics
     append transitions tran
-
+    tran
 ]
 
 properties-dialog: func [ object ][
@@ -253,7 +255,7 @@ update-states: func [ states ][
 ]
     
 
-update-drawing: does [ 
+update-canvas: does [ 
     drawing-states: copy []
     drawing-transitions: copy []
     foreach [id s ] states [ append drawing-states reduce [ 'push s/draw-code ] ]
@@ -336,7 +338,7 @@ new-state-node [ position: 120x30 name: "Discharge" ]
 new-transition  [from-state: states/1 to-state: states/3  transition-clause: "true" ]
 new-transition  [from-state: states/4 to-state: states/6  transition-clause: "true" ]
 
-update-drawing
+update-canvas
 
 
 view/new layout [
@@ -368,12 +370,15 @@ select-object: func [ object ][
     ]
 ]
 over-handler: none
-handle-events: func [ face action event /local mouse-pos ][
+handle-events: func [ face action event
+			/local mouse-pos transition state
+][
+    local: [ state-from none state-to none ]  ; Static variables
     system/view/focal-face: face
     system/view/caret: face/text
     mouse-pos: event/offset
     if event/key [ print mold event/key ]
-    switch action [
+    switch probe action [
 	down [
 	    move-state-initialize mouse-pos
 	    over-handler: :move-state
@@ -392,6 +397,20 @@ handle-events: func [ face action event /local mouse-pos ][
 	    over-handler mouse-pos
 	    show face
 	]
+	alt-down [
+	    local/state-from: find-mouse-hit states transformation/face-to-canvas mouse-pos
+	    over-handler: none
+	]
+	alt-up [
+	    local/state-to: find-mouse-hit states transformation/face-to-canvas mouse-pos
+	    if local/state-to [
+		transition: new-transition [ from-state: local/state-from to-state: local/state-to ]
+		update-canvas
+		select-object transition
+		properties-dialog transition
+		show [ canvas properties ]
+	    ]
+	]
 	key [
 	    mouse-pos: event/offset - win-offset? face
 	    switch event/key [ 
@@ -401,9 +420,8 @@ handle-events: func [ face action event /local mouse-pos ][
 		#"s" [  new-state-node [
 			    position: transformation/face-to-canvas mouse-pos
 			]
-			update-drawing show face
+			update-canvas show face
 		    ]
-		#"t" [ new-transition transformation/face-to-canvas mouse-pos update-drawing show face]
 		#"^~" [	 ; Delete node
 			if all [ selected selected/type = 'state ] [
 			    remove-state-node selected
