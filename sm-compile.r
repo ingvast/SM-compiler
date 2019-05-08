@@ -122,15 +122,18 @@ new-state-node: func [
 	state new-id id-code
 ][
     new-id: round random 2 ** 30
-    state: make state-object [ name: join "S" to-string new-id ]
-    state: make state spec
-    state: make state compose [ id: new-id ]
+    state: make state-object [ name: join "S" to-string id: new-id ]
+    state: make state ?? spec
+    ? state
+    ;state: make state compose [ id: new-id ]
     set-state-name state state/name ; Will throw an error if name occupied
-    repend states [ new-id state ]
+    repend states [ state/id state ]
     state
 ]
 
 remove-state-node: func [ state ][
+    foreach tr state/to-transitions [ remove find transitions tr ]
+    foreach tr state/from-transitions [ remove find transitions tr ]
     remove/part back find states state 2
     update-canvas
 ]
@@ -248,6 +251,9 @@ set-state-name: func [
     state/name: name
 ]
 
+
+
+
 update-transitions: func [ transitions ][
     foreach t transitions [ t/update-graphics ]
 ]
@@ -256,6 +262,81 @@ update-states: func [ states ][
     foreach [id s ] states [ s/update-graphics ]
 ]
     
+load-sm: func [
+    [catch]
+    file [string! file! ] {File to read from}
+    /local
+][
+    unless file? file [ file: to-file file ]
+    either 'file = get in info? file 'type [
+	content: load file
+
+	clear transitions
+	clear states
+	
+	unless parse content [
+	    'SM-COMPILER 
+	    'Format 0.1
+	    opt [ 'Save-date set file-date date! ]
+
+	    'States
+	    any [
+		set state block! (
+		    new-state-node ?? state
+		)
+	    ]
+	    'Transitions
+	    any [
+		set tran block! (
+		    new-transition tran
+		)
+	    ]
+	] [
+	    inform layout [ h1 "Something wrong in data" ] 
+	]
+	select-object none
+    ][
+	throw make error! "Not a valid file" 
+    ]
+]
+
+save-sm: func [
+    [catch]
+    file [string! file! ] {File to read from}
+    /local
+;	content
+][
+    unless file? file [ file: to-file file ]
+
+    content: trim copy {SM-COMPILER
+    format 0.1
+    }
+
+    repend content [ "Save-date " now newline newline ]
+    repend content {States^/}
+    foreach [ id state ] states [
+	append content {[^/}
+	foreach field-name [ name id position entry-code exit-code radius ][
+	    value: get in state field-name
+	    if object? value [ value: value/id ]
+	    repend content [ tab field-name ":" tab mold value newline]
+	]
+	append content {]^/}
+    ]
+    repend content {Transitions^/}
+    foreach tran transitions [
+	append content {[^/}
+	foreach field-name [ transition-clause label from-state to-state ][
+	    value: get in tran field-name
+	    if object? value [ value: value/id ]
+	    repend content [ tab field-name ":" tab mold value newline]
+	]
+	append content {]^/}
+    ]
+
+    write file content
+]
+	
 
 update-canvas: does [ 
     drawing-states: copy []
@@ -295,14 +376,14 @@ make object! [
 
 transformation: context [
     canvas: none	; The canvas to operate on
-    translate: 0x0
+    offset: 0x0
     scale: 2
     offset-offset: none
-    translate-init-handler: func [ offset ][
-	offset-offset: offset - translate
+    translate-init-handler: func [ new-offset ][
+	offset-offset: new-offset - offset
     ]
-    translate-handler: func [ offset ][
-	translate: offset - offset-offset 
+    translate-handler: func [ new-offset ][
+	offset: new-offset - offset-offset 
     ]
 
     scale-around: func [ rel-scale around-pos ][
@@ -313,7 +394,7 @@ transformation: context [
 	; mouse-pos = canvas * scale-after + tranfer-after =
 	;		    (mouse-pos - transfer-before) / scale-before * scale-after + transfer-after
 	; transfer-after = mouse-pos - (mouse-pos - tranfer-before) * scale-after / scale-before
-	translate: around-pos - (around-pos - translate * rel-scale )
+	offset: around-pos - (around-pos - offset * rel-scale )
 	scale: scale * rel-scale
     ]
 
@@ -322,10 +403,10 @@ transformation: context [
     
 
     canvas-to-face-pos: func [ pos ][
-	pos * scale + translate
+	pos * scale + offset
     ]
     face-to-canvas: func [ pos ][
-	pos - translate  / scale
+	pos - offset  / scale
     ]
 ]
 
@@ -348,14 +429,28 @@ view/new layout [
     canvas: box ivory 800x800 "" top left
 	    edge  [ size: 1x1 colour: black ]
 	    effect [ draw [
-		    translate transformation/translate
+		    translate transformation/offset
 		    scale transformation/scale transformation/scale
 		    push drawing-transitions
 		    push drawing-states
 	    ] ]
     properties: panel 150x800 [] edge [ size: 1x1 colour: black ]
     return
-    button "Save" #"^s" [ save ]
+    button "Open" #"^o" [
+	filename: request-file/title/filter/keep/only "Open state machine" "OK" "*.sm" 
+	if filename [
+	    load-sm filename
+	    transformation/offset: 0x0 transformation/scale: 1
+	    update-canvas
+	    show [ canvas properties ]
+	]
+    ]
+    button "Save" #"^s" [
+	filename: request-file/title/filter/keep/only/save "Save state machine" "OK" "*.sm" 
+	if filename [
+	    save-sm filename
+	]
+    ]
     button "Quit" #"^q" [unview]
 ]
 

@@ -1,5 +1,6 @@
 SM-COMPILER
 Format 0.1
+Save-date 8-May-2019/22:40:15+2:00
 
 states
 [
@@ -10,7 +11,7 @@ states
 [
     name: "one"
     id: 2
-    position: 100x100
+    position: 200x200
 ]
 
 transitions

@@ -1,0 +1,42 @@
+SM-COMPILER
+format 0.1
+Save-date 8-May-2019/22:52:20+2:00
+
+States
+[
+	name:	"Init"
+	id:	832631276
+	position:	20x20
+	entry-code:	""
+	exit-code:	""
+	radius:	30
+]
+[
+	name:	"Collect"
+	id:	146269818
+	position:	120x200
+	entry-code:	""
+	exit-code:	""
+	radius:	50
+]
+[
+	name:	"Discharge"
+	id:	874828403
+	position:	120x30
+	entry-code:	""
+	exit-code:	""
+	radius:	50
+]
+Transitions
+[
+	transition-clause:	"true"
+	label:	"true"
+	from-state:	832631276
+	to-state:	146269818
+]
+[
+	transition-clause:	"true"
+	label:	"true"
+	from-state:	146269818
+	to-state:	874828403
+]
