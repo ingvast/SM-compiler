@@ -14,13 +14,13 @@ state-object: make object! [
     entry-code: {}
     exit-code: {}
     draw-code: [
-	pen pencolor fill-pen none
-	line-width 3
-	translate position 
-	circle 0x0 radius
-	pen none fill-pen textcolor
-	text vectorial text-position name
-	]
+        pen pencolor fill-pen none
+        line-width 3
+        translate position 
+        circle 0x0 radius
+        pen none fill-pen textcolor
+        text vectorial text-position name
+        ]
     to-transitions: []
     from-transitions: []
     radius: 50
@@ -29,86 +29,86 @@ state-object: make object! [
     pencolor: black
     textcolor: black
     update-graphics: func [][
-	    pencolor: pick [ 255.30.30 10.10.10 ] highlight
-	    text-position: (text-size name ) / -2 
+            pencolor: pick [ 255.30.30 10.10.10 ] highlight
+            text-position: (text-size name ) / -2 
     ]
     highlight: off
     pos-in: func [ pos ][
-	pos: pos - position
-	return radius ** 2 > ( pos/x ** 2 + ( pos/y ** 2 ) )
+        pos: pos - position
+        return radius ** 2 > ( pos/x ** 2 + ( pos/y ** 2 ) )
     ]
     properties-layout: [
-	origin 0x0
-	across
-	field bold font[ size: 20 ] name edge [ size: 0x0 ]
-	    [ set-state-name self value update-graphics show canvas ]
-	return
-	tabs [ 75 ]
-	space 2x2
-	text "Entry" return
-	    area entry-code 150x200 ;[ entry-code: value]
-	return
-	text "Exit" return
-	    area exit-code 150x200 ;[ exit-code: value ]
-	return
-	text "Radius" tab field to-string radius [
-		    radius: any [ attempt [ to-decimal do value ] 50 ]
-		    update-graphics
-		    update-transitions transitions
-		    face/text: radius
-		    show [ canvas  face ]
-	]
-	return
-	text "Text colour" tab field to-string textcolor [
-			textcolor: any [ attempt [ to-tuple do value ] black ]
-			update-graphics face/text: textcolor show [ canvas face]
-		    ]
-	return
-	text "Reach transitions here" return
-	dyn-list 150x100 [ across space 0x0 
-		text 80 "from state" edge[ color: black size: 0x1]
-		    [   properties-dialog face/parent-face/pane/3/text
-			select-object face/parent-face/pane/3/text
-			show [ canvas properties ]
-		    ]
-		text 60 "clause" edge[color: black size: 0x1]
-		    [   properties-dialog face/parent-face/pane/3/text
-			select-object face/parent-face/pane/3/text
-			show [ canvas properties ]
-		    ]
-		text 0x0 "object"  with [ show?: off ]
-	    ] data (
-	    use [ lst ][
-		lst: copy []
-		foreach i to-transitions [
-		    append/only lst reduce [ any [ i/from-state/name i/from-state/id ] i/transition-clause i ]
-		]
-		reduce [ lst ]
-	    ]
-	)
-	return
-	text "Leave transition" return
-	dyn-list 150x100 [ across space 0x0 
-		text 80 "To state" edge[ color: black size: 0x1]
-		    [   properties-dialog face/parent-face/pane/3/text
-			select-object face/parent-face/pane/3/text
-			show [ canvas properties ]
-		    ]
-		text 60 "clause" edge[color: black size: 0x1]
-		    [   properties-dialog face/parent-face/pane/3/text
-			select-object face/parent-face/pane/3/text
-			show [ canvas properties ]
-		    ]
-		text 0x0 "object"  with [ show?: off ]
-	    ] data (
-	    use [ lst ][
-		lst: copy []
-		foreach i from-transitions [
-		    append/only lst reduce [ any [ i/to-state/name i/to-state/id ] i/transition-clause i ]
-		]
-		reduce [ lst ]
-	    ]
-	)
+        origin 0x0
+        across
+        field bold font[ size: 20 ] name edge [ size: 0x0 ]
+            [ set-state-name self value update-graphics show canvas ]
+        return
+        tabs [ 75 ]
+        space 2x2
+        text "Entry" return
+            area entry-code 150x200 ;[ entry-code: value]
+        return
+        text "Exit" return
+            area exit-code 150x200 ;[ exit-code: value ]
+        return
+        text "Radius" tab field to-string radius [
+                    radius: any [ attempt [ to-decimal do value ] 50 ]
+                    update-graphics
+                    update-transitions transitions
+                    face/text: radius
+                    show [ canvas  face ]
+        ]
+        return
+        text "Text colour" tab field to-string textcolor [
+                        textcolor: any [ attempt [ to-tuple do value ] black ]
+                        update-graphics face/text: textcolor show [ canvas face]
+                    ]
+        return
+        text "Reach transitions here" return
+        dyn-list 150x100 [ across space 0x0 
+                text 80 "from state" edge[ color: black size: 0x1]
+                    [   properties-dialog face/parent-face/pane/3/text
+                        select-object face/parent-face/pane/3/text
+                        show [ canvas properties ]
+                    ]
+                text 60 "clause" edge[color: black size: 0x1]
+                    [   properties-dialog face/parent-face/pane/3/text
+                        select-object face/parent-face/pane/3/text
+                        show [ canvas properties ]
+                    ]
+                text 0x0 "object"  with [ show?: off ]
+            ] data (
+            use [ lst ][
+                lst: copy []
+                foreach i to-transitions [
+                    append/only lst reduce [ any [ i/from-state/name i/from-state/id ] i/transition-clause i ]
+                ]
+                reduce [ lst ]
+            ]
+        )
+        return
+        text "Leave transition" return
+        dyn-list 150x100 [ across space 0x0 
+                text 80 "To state" edge[ color: black size: 0x1]
+                    [   properties-dialog face/parent-face/pane/3/text
+                        select-object face/parent-face/pane/3/text
+                        show [ canvas properties ]
+                    ]
+                text 60 "clause" edge[color: black size: 0x1]
+                    [   properties-dialog face/parent-face/pane/3/text
+                        select-object face/parent-face/pane/3/text
+                        show [ canvas properties ]
+                    ]
+                text 0x0 "object"  with [ show?: off ]
+            ] data (
+            use [ lst ][
+                lst: copy []
+                foreach i from-transitions [
+                    append/only lst reduce [ any [ i/to-state/name i/to-state/id ] i/transition-clause i ]
+                ]
+                reduce [ lst ]
+            ]
+        )
     ]
     
 ]
@@ -119,12 +119,11 @@ states: copy []
 new-state-node: func [
     {Creates a node and adds to the SM}
     spec /local
-	state new-id id-code
+        state new-id id-code
 ][
     new-id: round random 2 ** 30
     state: make state-object [ name: join "S" to-string id: new-id ]
-    state: make state ?? spec
-    ? state
+    state: make state spec
     ;state: make state compose [ id: new-id ]
     set-state-name state state/name ; Will throw an error if name occupied
     repend states [ state/id state ]
@@ -148,16 +147,16 @@ transition-object: make object! [
     to-state: none
 
     draw-code: [
-	pen arrowcolor 
-	line-width 1
-	fill-pen none
-	arrow 1x0
-	curve  from-pos knot1 knot2 to-pos
-	;arrow 0x0
-	;line knot1 knot2
-	pen none fill-pen black
-	translate knot1
-	text vectorial 0x0 label
+        pen arrowcolor 
+        line-width 1
+        fill-pen none
+        arrow 1x0
+        curve  from-pos knot1 knot2 to-pos
+        ;arrow 0x0
+        ;line knot1 knot2
+        pen none fill-pen black
+        translate knot1
+        text vectorial 0x0 label
     ]
     from-pos: 0x0
     to-pos: 0x0
@@ -165,48 +164,48 @@ transition-object: make object! [
     arrowcolor: black
     highlight: off
     update-graphics: func [
-	/local vector vector-length
+        /local vector vector-length
     ][
-	vector: to-state/position - from-state/position
-	vector-length: square-root vector/x ** 2 + ( vector/y ** 2)
-	if to-state/radius + from-state/radius + 1 < vector-length [
-	    to-pos: to-state/position - ( vector * ( 3 + to-state/radius ) / vector-length )
-	    from-pos: from-state/position + ( vector * from-state/radius / vector-length )
+        vector: to-state/position - from-state/position
+        vector-length: square-root vector/x ** 2 + ( vector/y ** 2)
+        if to-state/radius + from-state/radius + 1 < vector-length [
+            to-pos: to-state/position - ( vector * ( 3 + to-state/radius ) / vector-length )
+            from-pos: from-state/position + ( vector * from-state/radius / vector-length )
 
-	    ; make it slightly bent
-	    vector: to-pos - from-pos
-	    vector-length: square-root vector/x ** 2 + ( vector/y ** 2)
-	    knot1: vector * 0.4 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
-	    knot2: vector * 0.6 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
-	]
+            ; make it slightly bent
+            vector: to-pos - from-pos
+            vector-length: square-root vector/x ** 2 + ( vector/y ** 2)
+            knot1: vector * 0.4 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
+            knot2: vector * 0.6 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
+        ]
 
-	if any [ not label empty? label ] [ label: transition-clause ]
-	arrowcolor: pick [ 255.30.30 10.10.10 ] highlight
+        if any [ not label empty? label ] [ label: transition-clause ]
+        arrowcolor: pick [ 255.30.30 10.10.10 ] highlight
     ]
     properties-layout: [
-	origin 0x0
-	across
-	;field bold font[ size: 20 ] name edge [ size: 0x0 ]
-	;    [ set-state-name self value update-graphics show canvas ]
-	;return
-	tabs [ 75 ]
-	space 2x2
-	text bold from-state/name  [
-	    select-object from-state
-	    properties-dialog from-state
-	    show [ canvas properties ]
-	]
-	return
-	box 100x15 effect[draw[ pen black arrow 1x0 line 10x0 10x15 ]]
-	return
-	text bold to-state/name  [
-	    select-object to-state
-	    properties-dialog to-state
-	    show [ canvas properties ]
-	]
-	return
-	text "Transition clause" return
-	    area transition-clause 150x200 [ show canvas ]
+        origin 0x0
+        across
+        ;field bold font[ size: 20 ] name edge [ size: 0x0 ]
+        ;    [ set-state-name self value update-graphics show canvas ]
+        ;return
+        tabs [ 75 ]
+        space 2x2
+        text bold from-state/name  [
+            select-object from-state
+            properties-dialog from-state
+            show [ canvas properties ]
+        ]
+        return
+        box 100x15 effect[draw[ pen black arrow 1x0 line 10x0 10x15 ]]
+        return
+        text bold to-state/name  [
+            select-object to-state
+            properties-dialog to-state
+            show [ canvas properties ]
+        ]
+        return
+        text "Transition clause" return
+            area transition-clause 150x200 [ show canvas ]
     ]
 ]
 
@@ -240,13 +239,13 @@ set-state-name: func [
 ][
     unless object? state [ state: select states state ]
     foreach [id s] states [
-	unless  s = state  [
-	    if s/name = name  [
-		throw make error! rejoin [ 
-			{Name already occupied by:} mold s
-		]
-	    ]
-	]
+        unless  s = state  [
+            if s/name = name  [
+                throw make error! rejoin [ 
+                        {Name already occupied by:} mold s
+                ]
+            ]
+        ]
     ] 
     state/name: name
 ]
@@ -269,42 +268,41 @@ load-sm: func [
 ][
     unless file? file [ file: to-file file ]
     either 'file = get in info? file 'type [
-	content: load file
+        content: load file
 
-	clear transitions
-	clear states
-	
-	unless parse content [
-	    'SM-COMPILER 
-	    'Format 0.1
-	    opt [ 'Save-date set file-date date! ]
+        clear transitions
+        clear states
+        
+        unless parse content [
+            'SM-COMPILER 
+            'Format 0.1
+            opt [ 'Save-date set file-date date! ]
 
-	    'States
-	    any [
-		set state block! (
-		    new-state-node ?? state
-		)
-	    ]
-	    'Transitions
-	    any [
-		set tran block! (
-		    new-transition tran
-		)
-	    ]
-	] [
-	    inform layout [ h1 "Something wrong in data" ] 
-	]
-	select-object none
+            'States
+            any [
+                set state block! (
+                    new-state-node state
+                )
+            ]
+            'Transitions
+            any [
+                set tran block! (
+                    new-transition tran
+                )
+            ]
+        ] [
+            inform layout [ h1 "Something wrong in data" ] 
+        ]
+        select-object none
     ][
-	throw make error! "Not a valid file" 
+        throw make error! "Not a valid file" 
     ]
 ]
 
 save-sm: func [
-    [catch]
     file [string! file! ] {File to read from}
     /local
-;	content
+;       content
 ][
     unless file? file [ file: to-file file ]
 
@@ -315,28 +313,28 @@ save-sm: func [
     repend content [ "Save-date " now newline newline ]
     repend content {States^/}
     foreach [ id state ] states [
-	append content {[^/}
-	foreach field-name [ name id position entry-code exit-code radius ][
-	    value: get in state field-name
-	    if object? value [ value: value/id ]
-	    repend content [ tab field-name ":" tab mold value newline]
-	]
-	append content {]^/}
+        append content {[^/}
+        foreach field-name [ name id position entry-code exit-code radius ][
+            value: get in state field-name
+            if object? value [ value: value/id ]
+            repend content [ tab field-name ":" tab mold value newline]
+        ]
+        append content {]^/}
     ]
     repend content {Transitions^/}
     foreach tran transitions [
-	append content {[^/}
-	foreach field-name [ transition-clause label from-state to-state ][
-	    value: get in tran field-name
-	    if object? value [ value: value/id ]
-	    repend content [ tab field-name ":" tab mold value newline]
-	]
-	append content {]^/}
+        append content {[^/}
+        foreach field-name [ transition-clause label from-state to-state ][
+            value: get in tran field-name
+            if object? value [ value: value/id ]
+            repend content [ tab field-name ":" tab mold value newline]
+        ]
+        append content {]^/}
     ]
 
     write file content
 ]
-	
+        
 
 update-canvas: does [ 
     drawing-states: copy []
@@ -349,9 +347,9 @@ update-canvas: does [
 
 find-mouse-hit: func [ objects pos ][
     foreach [id s ] states [
-	if s/pos-in pos [
-	    return s
-	]
+        if s/pos-in pos [
+            return s
+        ]
     ]
     none
 ]
@@ -360,42 +358,42 @@ make object! [
     current-selection: none
     ref-pos: none
     set 'move-state func [ new-pos /local ][
-	if all [ current-selection current-selection/type = 'state ] [
-	    current-selection/position: (transformation/face-to-canvas new-pos) - ref-pos
-	    update-transitions transitions
-	]
+        if all [ current-selection current-selection/type = 'state ] [
+            current-selection/position: (transformation/face-to-canvas new-pos) - ref-pos
+            update-transitions transitions
+        ]
     ]
     set 'move-state-initialize func [ down-pos /local down-in-canvas ][
-	down-in-canvas: transformation/face-to-canvas down-pos
-	current-selection: find-mouse-hit states down-in-canvas
-	if current-selection [
-	    ref-pos: down-in-canvas - current-selection/position
-	]
+        down-in-canvas: transformation/face-to-canvas down-pos
+        current-selection: find-mouse-hit states down-in-canvas
+        if current-selection [
+            ref-pos: down-in-canvas - current-selection/position
+        ]
     ]
 ]
 
 transformation: context [
-    canvas: none	; The canvas to operate on
+    canvas: none        ; The canvas to operate on
     offset: 0x0
     scale: 2
     offset-offset: none
     translate-init-handler: func [ new-offset ][
-	offset-offset: new-offset - offset
+        offset-offset: new-offset - offset
     ]
     translate-handler: func [ new-offset ][
-	offset: new-offset - offset-offset 
+        offset: new-offset - offset-offset 
     ]
 
     scale-around: func [ rel-scale around-pos ][
-	; To change scale, scale around the mouse position
-	; hence a position in the canvas corresponding to the mouse position should 
-	; be reflected back att the mouse position after the new scale
-	; canvas = ( mouse-pos - transfer-before ) / scale-before
-	; mouse-pos = canvas * scale-after + tranfer-after =
-	;		    (mouse-pos - transfer-before) / scale-before * scale-after + transfer-after
-	; transfer-after = mouse-pos - (mouse-pos - tranfer-before) * scale-after / scale-before
-	offset: around-pos - (around-pos - offset * rel-scale )
-	scale: scale * rel-scale
+        ; To change scale, scale around the mouse position
+        ; hence a position in the canvas corresponding to the mouse position should 
+        ; be reflected back att the mouse position after the new scale
+        ; canvas = ( mouse-pos - transfer-before ) / scale-before
+        ; mouse-pos = canvas * scale-after + tranfer-after =
+        ;                   (mouse-pos - transfer-before) / scale-before * scale-after + transfer-after
+        ; transfer-after = mouse-pos - (mouse-pos - tranfer-before) * scale-after / scale-before
+        offset: around-pos - (around-pos - offset * rel-scale )
+        scale: scale * rel-scale
     ]
 
     ; face = canvas * scale + transfer
@@ -403,23 +401,148 @@ transformation: context [
     
 
     canvas-to-face-pos: func [ pos ][
-	pos * scale + offset
+        pos * scale + offset
     ]
     face-to-canvas: func [ pos ][
-	pos - offset  / scale
+        pos - offset  / scale
     ]
 ]
+
+languages: copy []
+repend languages [
+    'rebol context [
+        typical-code: func [
+                current-state {The state should be passed in and is returned}
+                /local t
+            ][
+                unless current-state [
+                    current-state: context [ state: 'S0  time-enter: now/precise ]
+                ]
+                t: now/time/precise - current-state/time-enter/time
+                transit-to: none
+                transit-to: switch current-state/state compose [  ; 
+                    (none) [ 'init ]
+                    init [
+                        case [
+                            true [ 'bright ]
+                        ]
+                    ]
+                    bright [
+                        case [
+                             t > 0:0:1 [ 'wait ]
+                        ]
+                    ]
+                    wait [
+                        case [
+                             t > 0:0:1 [ 'bright ]
+                        ]
+                    ]
+                ]
+                if transit-to [
+                    switch current-state/state [  ; 
+                        S0 []
+                        init [ setup-led ]
+                        bright [led-off ]
+                        wait [ ]
+                    ]
+
+                    switch transit-to [  ; Entry code
+                        init [ ]
+                        bright [led-on ]
+                        wait [ ]
+                    ]
+                    current-state/time-enter: now/precise
+                ]
+                if transit-to [ current-state/state: transit-to ]
+                current-state
+            ]
+                    
+        body: trim/auto copy {
+            func [ 
+                current-state
+                /local t
+            ][
+                unless current-state [
+                    current-state: context [ state: 0  time-enter: now/precise ]
+                ]
+                t: now/time/precise - current-state/time-enter/time
+                transit-to: none
+                transit-to: switch current-state/state 
+                    <transition-insert-point>
+                
+                if transit-to [
+                    switch current-state/state  [
+                        <exit-insert-point>
+		    ]
+                    switch transit-to [ ; Entry code
+                        <entry-insert-point>
+		    ]
+                    current-state/time-enter: now/precise
+                ]
+                if transit-to [ current-state/state: transit-to ]
+                current-state
+            ]
+        }    
+
+        create-sm-fun: func [
+	    {Creates a function that runs the state-machine, returns a string.}
+            /local
+            result
+            transition-switch
+            entry-switch
+            exit-switch
+            state
+            state-tran
+	    indent
+        ][
+            transition-switch: reduce [
+                0 reduce [ states/1 ] ;; change later when we have set up the starter
+            ]
+	    exit-switch: copy ""
+	    entry-switch: copy ""
+            foreach [ id state ]  states  [
+		; transitions
+                state-tran: copy reduce [
+                    state/id reduce [ 
+                        'case copy []
+                ] ]
+                foreach tr state/from-transitions [
+                    repend state-tran/2/case [
+			make paren! to-block tr/transition-clause
+			reduce [ tr/to-state/id ]
+                    ]
+                ]
+                append transition-switch state-tran
+                new-line find transition-switch state-tran on
+		
+		indent: "                "
+		; exit
+		repend exit-switch [ newline
+		    indent id "^-[ " state/exit-code " ]"
+		]
+		repend entry-switch [ newline
+		    indent id "^-[ " state/entry-code " ]"
+		]
+            ]
+
+            result: copy body
+            replace result {<transition-insert-point>} mold transition-switch
+            replace result {<exit-insert-point>} exit-switch
+            replace result {<entry-insert-point>} entry-switch
+            result
+        ]
+    ]
+]
+
+export: func [ 
+    lang {What language to export to}
+][
+]
+    
 
 states: copy [
 ]
 
-new-state-node [ position: 20x20 name: "Init" radius: 30]
-new-state-node [ position: 120x200 name: "Collect" ]
-new-state-node [ position: 120x30 name: "Discharge" ]
-
-
-new-transition  [from-state: states/1 to-state: states/3  transition-clause: "true" ]
-new-transition  [from-state: states/4 to-state: states/6  transition-clause: "true" ]
 
 update-canvas
 
@@ -427,29 +550,31 @@ update-canvas
 view/new layout [
     across 
     canvas: box ivory 800x800 "" top left
-	    edge  [ size: 1x1 colour: black ]
-	    effect [ draw [
-		    translate transformation/offset
-		    scale transformation/scale transformation/scale
-		    push drawing-transitions
-		    push drawing-states
-	    ] ]
+            edge  [ size: 1x1 colour: black ]
+            effect [ draw [
+                    translate transformation/offset
+                    scale transformation/scale transformation/scale
+                    push drawing-transitions
+                    push drawing-states
+            ] ]
     properties: panel 150x800 [] edge [ size: 1x1 colour: black ]
     return
+    button "Export model" [ export 'rebol ]
     button "Open" #"^o" [
-	filename: request-file/title/filter/keep/only "Open state machine" "OK" "*.sm" 
-	if filename [
-	    load-sm filename
-	    transformation/offset: 0x0 transformation/scale: 1
-	    update-canvas
-	    show [ canvas properties ]
-	]
+        filename: request-file/title/filter/keep/only "Open state machine" "OK" "*.sm" 
+        if filename [
+            load-sm filename
+            transformation/offset: 0x0 transformation/scale: 1
+            update-canvas
+            show [ canvas properties ]
+        ]
     ]
     button "Save" #"^s" [
-	filename: request-file/title/filter/keep/only/save "Save state machine" "OK" "*.sm" 
-	if filename [
-	    save-sm filename
-	]
+        filename: request-file/title/filter/keep/only/save "Save state machine" "OK" "*.sm" 
+        if filename [
+            unless find filename "." [ append filename ".sm" ]
+            save-sm filename
+        ]
     ]
     button "Quit" #"^q" [unview]
 ]
@@ -457,95 +582,94 @@ view/new layout [
 selected: none
 select-object: func [ object ][
     if selected [
-	selected/highlight: off
-	selected/update-graphics
+        selected/highlight: off
+        selected/update-graphics
     ]
     selected: object
     if object [
-	selected/highlight: on
-	selected/update-graphics
+        selected/highlight: on
+        selected/update-graphics
     ]
 ]
 
 handle-events: func [ face action event
-			/local mouse-pos transition state
+                        /local mouse-pos transition state
 ][
     local: [ over-handler none state-from none state-to none ]  ; Static variables
     system/view/focal-face: face
     system/view/caret: face/text
     mouse-pos: event/offset
-    if event/key [ print mold event/key ]
-    switch probe action [
-	down [
-	    move-state-initialize mouse-pos
-	    local/over-handler: :move-state
+    switch action [
+        down [
+            move-state-initialize mouse-pos
+            local/over-handler: :move-state
 
-	    either state: find-mouse-hit states transformation/face-to-canvas mouse-pos [
-		select-object state
-		properties-dialog selected
-		show [ canvas properties]
-	    ] [
-		transformation/translate-init-handler mouse-pos
-		local/over-handler: get in transformation 'translate-handler
-	    ]
-	    
-	]
-	over [
-	    local/over-handler mouse-pos
-	    show face
-	]
-	alt-down [
-	    local/state-from: find-mouse-hit states transformation/face-to-canvas mouse-pos
-	    local/over-handler: none
-	]
-	alt-up [
-	    local/state-to: find-mouse-hit states transformation/face-to-canvas mouse-pos
-	    if local/state-to [
-		transition: new-transition [ from-state: local/state-from to-state: local/state-to ]
-		update-canvas
-		select-object transition
-		properties-dialog transition
-		show [ canvas properties ]
-	    ]
-	]
-	key [
-	    mouse-pos: event/offset - win-offset? face
-	    switch event/key [ 
-		#"+" page-up [ transformation/scale-around 1.2 mouse-pos show face ]
-		#"-" page-down [ transformation/scale-around 1 / 1.2 mouse-pos show face ]
-		#"0" [ transformation/scale-around 1 / transformation/scale mouse-pos show face ]
-		#"s" [  select-object new-state-node [
-			    position: transformation/face-to-canvas mouse-pos
-			]
-			update-canvas
-			properties-dialog selected
-			show [ face canvas ]
-		    ]
-		#"t" [
-		    if all [ selected selected/type = 'state ] [
-			local/state-to: find-mouse-hit states transformation/face-to-canvas mouse-pos
-			if local/state-to [
-			    transition: new-transition [ from-state: selected to-state: local/state-to ]
-			    update-canvas
-			    select-object transition
-			    properties-dialog transition
-			    show [ canvas properties ]
-			]
-		    ]
-		]
-			
-		#"^~" [	 ; Delete node
-			if all [ selected selected/type = 'state ] [
-			    remove-state-node selected
-			    show canvas
-			    properties/pane: none
-			    show properties
-			    select-object none
-			]
-		    ]
-		#"^[" [ select-object none properties/pane: none show [ canvas properties ] ]
-	    ]
-	]
+            either state: find-mouse-hit states transformation/face-to-canvas mouse-pos [
+                select-object state
+                properties-dialog selected
+                show [ canvas properties]
+            ] [
+                transformation/translate-init-handler mouse-pos
+                local/over-handler: get in transformation 'translate-handler
+            ]
+            
+        ]
+        over [
+            local/over-handler mouse-pos
+            show face
+        ]
+        alt-down [
+            local/state-from: find-mouse-hit states transformation/face-to-canvas mouse-pos
+            local/over-handler: none
+        ]
+        alt-up [
+            local/state-to: find-mouse-hit states transformation/face-to-canvas mouse-pos
+            if local/state-to [
+                transition: new-transition [ from-state: local/state-from to-state: local/state-to ]
+                update-canvas
+                select-object transition
+                properties-dialog transition
+                show [ canvas properties ]
+            ]
+        ]
+        key [
+            mouse-pos: event/offset - win-offset? face
+            switch event/key [ 
+                #"+" page-up [ transformation/scale-around 1.2 mouse-pos show face ]
+                #"-" page-down [ transformation/scale-around 1 / 1.2 mouse-pos show face ]
+                #"0" [ transformation/scale-around 1 / transformation/scale mouse-pos show face ]
+                #"s" [  select-object new-state-node [
+                            position: transformation/face-to-canvas mouse-pos
+                        ]
+                        update-canvas
+                        properties-dialog selected
+                        show [ canvas properties ]
+                    ]
+                #"t" [
+                    if all [ selected selected/type = 'state ] [
+                        local/state-to: find-mouse-hit states transformation/face-to-canvas mouse-pos
+                        if local/state-to [
+                            transition: new-transition [ from-state: selected to-state: local/state-to ]
+                            update-canvas
+                            select-object transition
+                            properties-dialog transition
+                            show [ canvas properties ]
+                        ]
+                    ]
+                ]
+                        
+                #"^~" [  ; Delete node
+                        if all [ selected selected/type = 'state ] [
+                            remove-state-node selected
+                            show canvas
+                            properties/pane: none
+                            show properties
+                            select-object none
+                        ]
+                    ]
+                #"^[" [ select-object none properties/pane: none show [ canvas properties ] ]
+            ]
+        ]
     ]
 ]
 
@@ -557,11 +681,23 @@ canvas/feel: make canvas/feel [
 
 canvas/text: ""
 
+load-sm %blinky-2.sm
+
+
+fun: languages/rebol/create-sm-fun
+? :fun
+? fun
+
+
+unview/all
+
 show canvas
-if error? e: try [ do-events ] [
+if all [ none error? e: try [ do-events ] ] [
     e: disarm e 
     ? e
 ]
-
-
 halt
+
+
+
+;vim: expandtab
