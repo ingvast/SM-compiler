@@ -485,7 +485,7 @@ repend languages [
         }    
 
         create-sm-fun: func [
-	    {Creates a function that runs the state-machine, returns a string.}
+	    {Creates a function that runs the state-machine, returns a function}
             /local
             result
             transition-switch
@@ -529,14 +529,34 @@ repend languages [
             replace result {<transition-insert-point>} mold transition-switch
             replace result {<exit-insert-point>} exit-switch
             replace result {<entry-insert-point>} entry-switch
-            result
+            load result
         ]
     ]
 ]
 
 export: func [ 
+    [catch]
     lang {What language to export to}
+    file {The name of the file to save to. If none file request pops up.}
+    /local
+	header
+	data
 ][
+    either find languages lang [
+	unless file [
+	    file: request-file/title/keep/only/save/filter {Name of file to save state machine to} {OK} {*.r}
+	    unless file [ exit ]
+	]
+    ][
+	throw make error! {Cannot find the language}
+    ]
+    header: context [
+	title: {Exported}
+	author: get-env {username}
+	date: now
+    ]
+    data: languages/:lang/create-sm-fun
+    save/header file data header
 ]
     
 
@@ -559,7 +579,7 @@ view/new layout [
             ] ]
     properties: panel 150x800 [] edge [ size: 1x1 colour: black ]
     return
-    button "Export model" [ export 'rebol ]
+    button "Export model" [ export 'rebol none ]
     button "Open" #"^o" [
         filename: request-file/title/filter/keep/only "Open state machine" "OK" "*.sm" 
         if filename [
@@ -682,17 +702,11 @@ canvas/feel: make canvas/feel [
 canvas/text: ""
 
 load-sm %blinky-2.sm
+update-canvas
+show [ canvas properties ]
 
 
-fun: languages/rebol/create-sm-fun
-? :fun
-? fun
-
-
-unview/all
-
-show canvas
-if all [ none error? e: try [ do-events ] ] [
+if all [ error? e: try [ do-events ] ] [
     e: disarm e 
     ? e
 ]
