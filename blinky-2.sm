@@ -1,0 +1,48 @@
+SM-COMPILER
+format 0.1
+Save-date 13-May-2019/22:16:47+2:00
+
+States
+[
+	name:	"Setup"
+	id:	595373853
+	position:	90x79
+	entry-code:	{print "Init led"}
+	exit-code:	""
+	radius:	50
+]
+[
+	name:	"Bright"
+	id:	1038206088
+	position:	92x279
+	entry-code:	{print "LED on"}
+	exit-code:	{print "LED off"}
+	radius:	50
+]
+[
+	name:	"Wait"
+	id:	570544832
+	position:	245x146
+	entry-code:	""
+	exit-code:	""
+	radius:	50
+]
+Transitions
+[
+	transition-clause:	"t > 0:0:0.4"
+	label:	"t > 0:0:0.4"
+	from-state:	570544832
+	to-state:	1038206088
+]
+[
+	transition-clause:	"t > 0:0:1"
+	label:	"t > 0:0:1"
+	from-state:	1038206088
+	to-state:	570544832
+]
+[
+	transition-clause:	"true"
+	label:	"true"
+	from-state:	595373853
+	to-state:	1038206088
+]

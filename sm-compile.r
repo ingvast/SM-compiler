@@ -27,12 +27,18 @@ state-object: make object! [
     position: 100x100
     text-position: none
     pencolor: black
+    active-color: green
     textcolor: black
     update-graphics: func [][
-            pencolor: pick [ 255.30.30 10.10.10 ] highlight
+            pencolor: case [
+                active [ active-color ]
+                highlight [ 255.30.30 ]
+                true [ 10.10.10 ] 
+            ]
             text-position: (text-size name ) / -2 
     ]
     highlight: off
+    active: off
     pos-in: func [ pos ][
         pos: pos - position
         return radius ** 2 > ( pos/x ** 2 + ( pos/y ** 2 ) )
@@ -147,7 +153,7 @@ transition-object: make object! [
     to-state: none
 
     draw-code: [
-        pen arrowcolor 
+        pen arrow-color 
         line-width 1
         fill-pen none
         arrow 1x0
@@ -161,8 +167,10 @@ transition-object: make object! [
     from-pos: 0x0
     to-pos: 0x0
     knot1: knot2: 0x0
-    arrowcolor: black
+    arrow-color: black
+    active-color: green
     highlight: off
+    active: off
     update-graphics: func [
         /local vector vector-length
     ][
@@ -180,7 +188,11 @@ transition-object: make object! [
         ]
 
         if any [ not label empty? label ] [ label: transition-clause ]
-        arrowcolor: pick [ 255.30.30 10.10.10 ] highlight
+        arrow-color: case [
+            active [ active-color ]
+            highlight [ 255.30.30 ]
+            true [ 10.10.10 ] 
+        ]
     ]
     properties-layout: [
         origin 0x0
@@ -473,10 +485,10 @@ repend languages [
                 if transit-to [
                     switch current-state/state  [
                         <exit-insert-point>
-		    ]
+                    ]
                     switch transit-to [ ; Entry code
                         <entry-insert-point>
-		    ]
+                    ]
                     current-state/time-enter: now/precise
                 ]
                 if transit-to [ current-state/state: transit-to ]
@@ -485,7 +497,7 @@ repend languages [
         }    
 
         create-sm-fun: func [
-	    {Creates a function that runs the state-machine, returns a function}
+            {Creates a function that runs the state-machine, returns a function}
             /local
             result
             transition-switch
@@ -493,43 +505,43 @@ repend languages [
             exit-switch
             state
             state-tran
-	    indent
+            indent
         ][
             transition-switch: reduce [
                 0 reduce [ states/1 ] ;; change later when we have set up the starter
             ]
-	    exit-switch: copy ""
-	    entry-switch: copy ""
+            exit-switch: copy ""
+            entry-switch: copy ""
             foreach [ id state ]  states  [
-		; transitions
+                ; transitions
                 state-tran: copy reduce [
                     state/id reduce [ 
                         'case copy []
                 ] ]
                 foreach tr state/from-transitions [
                     repend state-tran/2/case [
-			make paren! to-block tr/transition-clause
-			reduce [ tr/to-state/id ]
+                        make paren! to-block tr/transition-clause
+                        reduce [ tr/to-state/id ]
                     ]
                 ]
                 append transition-switch state-tran
                 new-line find transition-switch state-tran on
-		
-		indent: "                "
-		; exit
-		repend exit-switch [ newline
-		    indent id "^-[ " state/exit-code " ]"
-		]
-		repend entry-switch [ newline
-		    indent id "^-[ " state/entry-code " ]"
-		]
+                
+                indent: "                "
+                ; exit
+                repend exit-switch [ newline
+                    indent id "^-[ " state/exit-code " ]"
+                ]
+                repend entry-switch [ newline
+                    indent id "^-[ " state/entry-code " ]"
+                ]
             ]
 
             result: copy body
             replace result {<transition-insert-point>} mold transition-switch
             replace result {<exit-insert-point>} exit-switch
             replace result {<entry-insert-point>} entry-switch
-            load result
+            do result
         ]
     ]
 ]
@@ -539,21 +551,26 @@ export: func [
     lang {What language to export to}
     file {The name of the file to save to. If none file request pops up.}
     /local
-	header
-	data
+        header
+        data
 ][
     either find languages lang [
-	unless file [
-	    file: request-file/title/keep/only/save/filter {Name of file to save state machine to} {OK} {*.r}
-	    unless file [ exit ]
-	]
+        unless file [
+            file: request-file/title/keep/only/save/filter {Name of file to save state machine to} {OK} {*.r}
+            unless file [ exit ]
+        ]
     ][
-	throw make error! {Cannot find the language}
+        throw make error! {Cannot find the language}
     ]
     header: context [
-	title: {Exported}
-	author: get-env {username}
-	date: now
+        title: {Exported}
+        author: get-env {username}
+        date: now
+        doc: {
+            > f: do %<file>.r 
+            > state: f none ; Create the starting state
+            > forever [ state: f state ]
+        } 
     ]
     data: languages/:lang/create-sm-fun
     save/header file data header
@@ -566,20 +583,68 @@ states: copy [
 
 update-canvas
 
+simulate-sm: func [ 
+    /local
+][
+    sys: languages/rebol/create-sm-fun
+    state: none
+
+    simulation-view: view/title/new layout [
+        across
+        btn "Run/Restart" [ state: none act/rate: do interval-field/text show act]
+        btn "Pause/cont" [ act/rate: if not act/rate [ do interval-field/text ] show act]
+
+        return
+        state-text: area 600x300 
+            mold state
+        return
+        text "Interval" interval-field: field "10" 100 [ if act/rate [ act/rate: do value show act]]
+        step-btn: btn "Step" [ act/action none none ]
+        act: box 0x0 on green [
+            old-state-id:  all [ state state/state  ]
+            state: sys state
+            if old-state-id <> state/state [
+                state-object: select states old-state-id
+                if state-object [
+                    state-object/active: off
+                    state-object/update-graphics
+                ]
+
+                state-object: select states state/state
+                state-object/active: on
+                state-object/update-graphics
+
+                show canvas
+            ]
+
+            state-text/text: mold state
+            
+            show state-text
+            ]
+            feel [
+                engage: func [ f a e ][
+                    if a = 'time [
+                        f/action none none
+                    ]
+                ]
+            ]
+        btn "Close" [ unview/only simulation-view ]
+
+    ] "Simulation"
+]
+
 
 view/new layout [
     across 
     canvas: box ivory 800x800 "" top left
             edge  [ size: 1x1 colour: black ]
-            effect [ draw [
-                    translate transformation/offset
+            effect [ draw [ translate transformation/offset
                     scale transformation/scale transformation/scale
                     push drawing-transitions
                     push drawing-states
             ] ]
     properties: panel 150x800 [] edge [ size: 1x1 colour: black ]
     return
-    button "Export model" [ export 'rebol none ]
     button "Open" #"^o" [
         filename: request-file/title/filter/keep/only "Open state machine" "OK" "*.sm" 
         if filename [
@@ -597,6 +662,9 @@ view/new layout [
         ]
     ]
     button "Quit" #"^q" [unview]
+    
+    button "Export model" [ export 'rebol none ]
+    Button "Run"  [ simulate-sm ]
 ]
 
 selected: none
@@ -714,4 +782,4 @@ halt
 
 
 
-;vim: expandtab
+; vim: expandtab 

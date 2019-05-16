@@ -1,0 +1,87 @@
+Rules of transitions.
+=====================
+
+The program delivers a function that can be executed
+
+Enkelt system:
+--------------
+
+A arrow from a black blob (starter) indicates where the execution starts.
+When entering into a state, the Entry-code is executed. When exiting the
+state, the Exit-code is executed.
+
+All transition exiting the state are evaluated, whichever first returns true
+will happen.  A transition without rule always return true.
+
+A transition can point to the same state as it came from, hence trigger first
+exit code and then entry code.
+
+The order of execution of the transitions can be changed.  The order is
+indicated by a number at the start of the arrow.
+
+
+
+Controlling execution
+---------------------
+
+Groups/submachines
+------------------
+
+Machines can have submachines which in one sense can be seen as a collection
+of nodes inside one node.
+A transition can reach into a submachine in mainly two ways.
+1. A transition reaches a node in the submachine, whereas the submachine takes
+   off from that node.
+2. A transition points to the node containing the submachine. The submachine
+   then continues from the state it was in last time it was active.
+   In this case a starter inside the submachine is required.
+
+In the same fashion, transitions leaving the node with submachine can start
+either from a node in the submachine or from the node itself.
+
+In all other respects a node containing a submachine behaves as any other
+nodes, hence running entry and exit codes.
+
+The execution order when state machines are involved does not differ much from
+execution with one machine. Only that transitions from node is checked before
+transitions in submachine.
+Pseudocode
+    
+    transit-to: null
+	any [ 
+	    transit-to: check all transitions from the node
+	    take one step of submachine
+	    new-substate, transit-to = run submachine substate
+	]
+	if all [ transit-to is-state-in-machine transit-to ] [
+	    run exit code of state
+	    state: transit-to
+	    run entry code of state
+	    transit-to: null
+	]
+	return transit-to
+	
+The execution order when entering a node with a submachine is:
+1. Run entry code of node.
+
+2. Take one round of submachine, inkluding its transitions.
+    If one of the transitions points out of the submachine
+    1) run the exit code of the node in submachine
+    2) run the exit code of the node.
+
+
+Scopes
+------
+
+A machine can have associated state variables to help make it more complex.
+The variables becomes part of the state structure (object) that is passed
+between the machine and the calling system. The calling system has to
+initialize the structure.
+
+The variables are defined in machine properties, both machine properties and
+submachines.
+
+A variable denoting the elapsed time since the state was activated is always
+available.  Very useful for making timers.
+These exist one for each machine.
+
