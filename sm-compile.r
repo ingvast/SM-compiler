@@ -1,11 +1,18 @@
 REBOL [
     title: "Finite state machine design tool"
     author: "Johan Ingvast"
+    TODO: {
+        * Fix system starting point
+        * Simulate directly without making function
+        * Move running buttons into system
+        * Direct lookup of clicks from double map
+        }
 ]
 
 do %vid-extension.r
 
 text-size: func [ str ][ size-text make face [ text: str ] ]
+
 
 state-object: make object! [
     type: 'state
@@ -116,7 +123,6 @@ state-object: make object! [
             ]
         )
     ]
-    
 ]
 id?: :integer?
 
@@ -141,6 +147,38 @@ remove-state-node: func [ state ][
     foreach tr state/from-transitions [ remove find transitions tr ]
     remove/part back find states state 2
     update-canvas
+]
+
+; Start points will always be first obejct in list of states. In case there is
+; no start points, the first position will be none
+
+starting-object: make
+    type: 'start
+    name: none
+    entry-code: exit-code: none
+    to-transitions: from-transitions: none
+    draw-code: [
+        fill-pen pencolor  pen pencolor
+        circle 0x0 radius
+    ]
+    radius: 5
+    update-graphics: func [][
+            pencolor: case [
+                active [ active-color ]
+                highlight [ 255.30.30 ]
+                true [ 10.10.10 ] 
+            ]
+    ]
+    properties-layout: [
+        origin 0x0 150 
+        below
+        h2 "Starting point"
+        trim {
+            Only one starting point is allowed in each system.
+            The starting point is marked with black blob.
+            No code is executed besides what happens when the execution point reaches the first state
+            }
+    ]
 ]
 
 
@@ -591,15 +629,6 @@ simulate-sm: func [
 
     simulation-view: view/title/new layout [
         across
-        btn "Run/Restart" [ state: none act/rate: do interval-field/text show act]
-        btn "Pause/cont" [ act/rate: if not act/rate [ do interval-field/text ] show act]
-
-        return
-        state-text: area 600x300 
-            mold state
-        return
-        text "Interval" interval-field: field "10" 100 [ if act/rate [ act/rate: do value show act]]
-        step-btn: btn "Step" [ act/action none none ]
         act: box 0x0 on green [
             old-state-id:  all [ state state/state  ]
             state: sys state
@@ -628,6 +657,25 @@ simulate-sm: func [
                     ]
                 ]
             ]
+        btn "Run/Restart" [
+                            state: none act/rate: do interval-field/text
+                            select-object none
+                            show act
+                         ]
+        btn "Pause/cont" [ act/rate: either not act/rate
+                                        [ do interval-field/text ]
+                                        [ select-object none none]
+                            show act
+                         ]
+
+        return
+        state-text: area 600x300 mold state
+        return
+        text "Interval" interval-field: field "10" 100 [ if act/rate [ act/rate: do value show act]]
+        step-btn: btn "Step" [
+                            act/action none none
+                            select-object none
+                        ]
         btn "Close" [ unview/only simulation-view ]
 
     ] "Simulation"
@@ -645,7 +693,7 @@ view/new layout [
             ] ]
     properties: panel 150x800 [] edge [ size: 1x1 colour: black ]
     return
-    button "Open" #"^o" [
+    btn "Open" #"^o" [
         filename: request-file/title/filter/keep/only "Open state machine" "OK" "*.sm" 
         if filename [
             load-sm filename
@@ -654,17 +702,17 @@ view/new layout [
             show [ canvas properties ]
         ]
     ]
-    button "Save" #"^s" [
+    btn "Save" #"^s" [
         filename: request-file/title/filter/keep/only/save "Save state machine" "OK" "*.sm" 
         if filename [
             unless find filename "." [ append filename ".sm" ]
             save-sm filename
         ]
     ]
-    button "Quit" #"^q" [unview]
+    btn "Quit" #"^q" [unview]
     
-    button "Export model" [ export 'rebol none ]
-    Button "Run"  [ simulate-sm ]
+    btn "Export model" [ export 'rebol none ]
+    btn "Run"  [ simulate-sm ]
 ]
 
 selected: none
