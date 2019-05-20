@@ -6,6 +6,9 @@ REBOL [
         * Simulate directly without making function
         * Move running buttons into system
         * Direct lookup of clicks from double map
+        * Order of transitions.
+        }
+    DONE: {
         }
 ]
 
@@ -126,12 +129,12 @@ state-object: make object! [
 ]
 id?: :integer?
 
-states: copy []
+states: copy [ none none ]
 
 new-state-node: func [
     {Creates a node and adds to the SM}
     spec /local
-        state new-id id-code
+        state new-id 
 ][
     new-id: round random 2 ** 30
     state: make state-object [ name: join "S" to-string id: new-id ]
@@ -143,23 +146,29 @@ new-state-node: func [
 ]
 
 remove-state-node: func [ state ][
+    switch state/type [
+        start [ states/1: none states/2: none ]
+        state [
+            remove/part back find states state 2
+        ]
+    ]
     foreach tr state/to-transitions [ remove find transitions tr ]
     foreach tr state/from-transitions [ remove find transitions tr ]
-    remove/part back find states state 2
     update-canvas
 ]
 
-; Start points will always be first obejct in list of states. In case there is
+; Start points will always be first obejct in states. In case there is
 ; no start points, the first position will be none
 
-starting-object: make
+starting-object: make state-object [
     type: 'start
     name: none
     entry-code: exit-code: none
-    to-transitions: from-transitions: none
+    to-transitions: from-transitions: []
+
     draw-code: [
         fill-pen pencolor  pen pencolor
-        circle 0x0 radius
+        circle position radius
     ]
     radius: 5
     update-graphics: func [][
@@ -168,12 +177,18 @@ starting-object: make
                 highlight [ 255.30.30 ]
                 true [ 10.10.10 ] 
             ]
+            text-position: (text-size name ) / -2 
     ]
     properties-layout: [
-        origin 0x0 150 
-        below
+        origin  0x0
+        across
         h2 "Starting point"
-        trim {
+        return
+        text "Staring:"
+        info from-transitions/1/to-state/name
+        return
+
+        info 150x150 wrap trim {
             Only one starting point is allowed in each system.
             The starting point is marked with black blob.
             No code is executed besides what happens when the execution point reaches the first state
@@ -181,8 +196,34 @@ starting-object: make
     ]
 ]
 
+new-starting-node: func [
+    {Creates a node and adds to the SM}
+    state [number! object!] {The state it should start with}
+    pos [ pair! ] 
+    /local
+        node new-id 
+][
+    new-id: round random 2 ** 30
+    node: make starting-object [ id: new-id position: pos ]
+    new-transition [ from-state: node to-state: state ]
+    change/part states reduce [ node/id node ] 2
+    node
+]
+
+normalize-100: func [
+    pair
+    /local len
+][
+    len: square-root pair/x  ** 2 + (pair/y ** 2 )
+    either len < 1  [
+        71x71
+    ][
+        pair * ( 100 / len )
+    ]
+]
 
 rot-90: func [ vect ][ as-pair vect/2 negate vect/1 ]
+
 transition-object: make object! [
     type: 'transition
     id: none
@@ -213,17 +254,14 @@ transition-object: make object! [
         /local vector vector-length
     ][
         vector: to-state/position - from-state/position
-        vector-length: square-root vector/x ** 2 + ( vector/y ** 2)
-        if to-state/radius + from-state/radius + 1 < vector-length [
-            to-pos: to-state/position - ( vector * ( 3 + to-state/radius ) / vector-length )
-            from-pos: from-state/position + ( vector * from-state/radius / vector-length )
+        dir: normalize-100 vector
+        to-pos: to-state/position - ( dir * ( 3 + to-state/radius ) / 100 )
+        from-pos: from-state/position + ( dir * from-state/radius / 100 )
 
-            ; make it slightly bent
-            vector: to-pos - from-pos
-            vector-length: square-root vector/x ** 2 + ( vector/y ** 2)
-            knot1: vector * 0.4 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
-            knot2: vector * 0.6 + from-pos + ( ( rot-90 vector ) * 20 / (vector-length ) )
-        ]
+        ; make it slightly bent
+        vector: to-pos - from-pos
+        knot1: vector * 0.4 + from-pos + ( ( rot-90 dir ) * 0.20 )
+        knot2: vector * 0.6 + from-pos + ( ( rot-90 dir ) * 0.20 )
 
         if any [ not label empty? label ] [ label: transition-clause ]
         arrow-color: case [
@@ -235,9 +273,6 @@ transition-object: make object! [
     properties-layout: [
         origin 0x0
         across
-        ;field bold font[ size: 20 ] name edge [ size: 0x0 ]
-        ;    [ set-state-name self value update-graphics show canvas ]
-        ;return
         tabs [ 75 ]
         space 2x2
         text bold from-state/name  [
@@ -290,7 +325,7 @@ set-state-name: func [
     unless object? state [ state: select states state ]
     foreach [id s] states [
         unless  s = state  [
-            if s/name = name  [
+            if all [ s s/name = name ]  [
                 throw make error! rejoin [ 
                         {Name already occupied by:} mold s
                 ]
@@ -308,13 +343,14 @@ update-transitions: func [ transitions ][
 ]
 
 update-states: func [ states ][
-    foreach [id s ] states [ s/update-graphics ]
+    foreach [id s ] states [ all [ s s/update-graphics ] ]
 ]
     
 load-sm: func [
     [catch]
     file [string! file! ] {File to read from}
     /local
+        p
 ][
     unless file? file [ file: to-file file ]
     either 'file = get in info? file 'type [
@@ -322,6 +358,7 @@ load-sm: func [
 
         clear transitions
         clear states
+        repend states [ none  none ]
         
         unless parse content [
             'SM-COMPILER 
@@ -332,6 +369,20 @@ load-sm: func [
             any [
                 set state block! (
                     new-state-node state
+                )
+            ]
+            opt [
+                'Starting
+                set def block!
+                (
+                    def: context def 
+                    change/part
+                        states
+                        reduce [
+                            def/id
+                            make starting-object [ id: def/id position: def/position ]
+                        ]
+                        2
                 )
             ]
             'Transitions
@@ -362,7 +413,7 @@ save-sm: func [
 
     repend content [ "Save-date " now newline newline ]
     repend content {States^/}
-    foreach [ id state ] states [
+    foreach [ id state ] skip states 2 [
         append content {[^/}
         foreach field-name [ name id position entry-code exit-code radius ][
             value: get in state field-name
@@ -371,6 +422,18 @@ save-sm: func [
         ]
         append content {]^/}
     ]
+
+    if states/2 [
+        repend content {Starting^/}
+        append content {[^/}
+        foreach field-name [ id position ][
+            value: get in states/2 field-name
+            if object? value [ value: value/id ]
+            repend content [ tab field-name ":" tab mold value newline]
+        ]
+        append content {]^/}
+    ]
+    
     repend content {Transitions^/}
     foreach tran transitions [
         append content {[^/}
@@ -389,7 +452,7 @@ save-sm: func [
 update-canvas: does [ 
     drawing-states: copy []
     drawing-transitions: copy []
-    foreach [id s ] states [ append drawing-states reduce [ 'push s/draw-code ] ]
+    foreach [id s ] states [ if id [ append drawing-states reduce [ 'push s/draw-code ] ] ]
     foreach t transitions [ append drawing-states reduce[ 'push t/draw-code ]]
     update-states states
     update-transitions transitions
@@ -397,7 +460,7 @@ update-canvas: does [
 
 find-mouse-hit: func [ objects pos ][
     foreach [id s ] states [
-        if s/pos-in pos [
+        if all [ s s/pos-in pos ] [
             return s
         ]
     ]
@@ -408,10 +471,10 @@ make object! [
     current-selection: none
     ref-pos: none
     set 'move-state func [ new-pos /local ][
-        if all [ current-selection current-selection/type = 'state ] [
+        ;if all [ current-selection current-selection/type = 'state ] [
             current-selection/position: (transformation/face-to-canvas new-pos) - ref-pos
             update-transitions transitions
-        ]
+        ;]
     ]
     set 'move-state-initialize func [ down-pos /local down-in-canvas ][
         down-in-canvas: transformation/face-to-canvas down-pos
@@ -544,13 +607,15 @@ repend languages [
             state
             state-tran
             indent
+            states-loop
         ][
             transition-switch: reduce [
                 0 reduce [ states/1 ] ;; change later when we have set up the starter
             ]
             exit-switch: copy ""
             entry-switch: copy ""
-            foreach [ id state ]  states  [
+            states-loop: either states/1 [ states ][ skip states 2 ]
+            foreach [ id state ]  states-loop  [
                 ; transitions
                 state-tran: copy reduce [
                     state/id reduce [ 
@@ -558,7 +623,11 @@ repend languages [
                 ] ]
                 foreach tr state/from-transitions [
                     repend state-tran/2/case [
-                        make paren! to-block tr/transition-clause
+                        either empty? tr/transition-clause [ 
+                            true
+                        ][
+                            make paren! to-block tr/transition-clause
+                        ]
                         reduce [ tr/to-state/id ]
                     ]
                 ]
@@ -611,7 +680,7 @@ export: func [
         } 
     ]
     data: languages/:lang/create-sm-fun
-    save/header file data header
+    save/header file :data header
 ]
     
 
@@ -728,8 +797,11 @@ select-object: func [ object ][
     ]
 ]
 
-handle-events: func [ face action event
-                        /local mouse-pos transition state
+handle-events: func [
+    face action event
+    /local
+        mouse-pos transition state
+        under-mouse
 ][
     local: [ over-handler none state-from none state-to none ]  ; Static variables
     system/view/focal-face: face
@@ -738,17 +810,16 @@ handle-events: func [ face action event
     switch action [
         down [
             move-state-initialize mouse-pos
-            local/over-handler: :move-state
 
             either state: find-mouse-hit states transformation/face-to-canvas mouse-pos [
                 select-object state
                 properties-dialog selected
+                local/over-handler: :move-state
                 show [ canvas properties]
             ] [
                 transformation/translate-init-handler mouse-pos
                 local/over-handler: get in transformation 'translate-handler
             ]
-            
         ]
         over [
             local/over-handler mouse-pos
@@ -757,16 +828,6 @@ handle-events: func [ face action event
         alt-down [
             local/state-from: find-mouse-hit states transformation/face-to-canvas mouse-pos
             local/over-handler: none
-        ]
-        alt-up [
-            local/state-to: find-mouse-hit states transformation/face-to-canvas mouse-pos
-            if local/state-to [
-                transition: new-transition [ from-state: local/state-from to-state: local/state-to ]
-                update-canvas
-                select-object transition
-                properties-dialog transition
-                show [ canvas properties ]
-            ]
         ]
         key [
             mouse-pos: event/offset - win-offset? face
@@ -783,9 +844,9 @@ handle-events: func [ face action event
                     ]
                 #"t" [
                     if all [ selected selected/type = 'state ] [
-                        local/state-to: find-mouse-hit states transformation/face-to-canvas mouse-pos
-                        if local/state-to [
-                            transition: new-transition [ from-state: selected to-state: local/state-to ]
+                        under-mouse: find-mouse-hit states transformation/face-to-canvas mouse-pos
+                        if all [ under-mouse under-mouse/type = state ] [
+                            transition: new-transition [ from-state: selected to-state: under-mouse ]
                             update-canvas
                             select-object transition
                             properties-dialog transition
@@ -793,14 +854,24 @@ handle-events: func [ face action event
                         ]
                     ]
                 ]
+                #"b" [
+                    if all [ selected selected/type = 'state 
+                                not find-mouse-hit states transformation/face-to-canvas mouse-pos
+                                not states/1
+                    ] [
+                            node: new-starting-node selected transformation/face-to-canvas mouse-pos 
+                            select-object node
+                            update-canvas
+                            show [ canvas ]
+                    ]
+                ]
                         
                 #"^~" [  ; Delete node
-                        if all [ selected selected/type = 'state ] [
+                        if  find [ start state ] selected/type [
                             remove-state-node selected
-                            show canvas
                             properties/pane: none
-                            show properties
                             select-object none
+                            show [ canvas properties ]
                         ]
                     ]
                 #"^[" [ select-object none properties/pane: none show [ canvas properties ] ]
@@ -818,6 +889,7 @@ canvas/feel: make canvas/feel [
 canvas/text: ""
 
 load-sm %blinky-2.sm
+
 update-canvas
 show [ canvas properties ]
 

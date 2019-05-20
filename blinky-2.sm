@@ -1,12 +1,12 @@
 SM-COMPILER
 format 0.1
-Save-date 13-May-2019/22:16:47+2:00
+Save-date 20-May-2019/7:10:08+2:00
 
 States
 [
 	name:	"Setup"
 	id:	595373853
-	position:	90x79
+	position:	136x126
 	entry-code:	{print "Init led"}
 	exit-code:	""
 	radius:	50
@@ -14,7 +14,7 @@ States
 [
 	name:	"Bright"
 	id:	1038206088
-	position:	92x279
+	position:	176x317
 	entry-code:	{print "LED on"}
 	exit-code:	{print "LED off"}
 	radius:	50
@@ -22,10 +22,15 @@ States
 [
 	name:	"Wait"
 	id:	570544832
-	position:	245x146
+	position:	327x210
 	entry-code:	""
 	exit-code:	""
 	radius:	50
+]
+Starting
+[
+	id:	1015698506
+	position:	63x69
 ]
 Transitions
 [
@@ -45,4 +50,10 @@ Transitions
 	label:	"true"
 	from-state:	595373853
 	to-state:	1038206088
+]
+[
+	transition-clause:	""
+	label:	""
+	from-state:	1015698506
+	to-state:	595373853
 ]
