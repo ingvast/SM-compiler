@@ -2,14 +2,17 @@ REBOL [
     title: "Finite state machine design tool"
     author: "Johan Ingvast"
     TODO: {
-        * Fix system starting point
         * Simulate directly without making function
         * Move running buttons into system
         * Direct lookup of clicks from double map
         * Order of transitions.
-        }
+        * Program part of this program with tool itself.
+        * Button for making new system.
+        * Export to pdf
+    }
     DONE: {
-        }
+        * Fix system starting point
+    }
 ]
 
 do %vid-extension.r
@@ -692,6 +695,10 @@ update-canvas
 
 simulate-sm: func [ 
     /local
+        err
+        old-state-id state
+        active-object
+        sys act
 ][
     sys: languages/rebol/create-sm-fun
     state: none
@@ -700,17 +707,32 @@ simulate-sm: func [
         across
         act: box 0x0 on green [
             old-state-id:  all [ state state/state  ]
-            state: sys state
+            if error? err: try [
+                state: sys state
+            ][
+                act/rate: none
+                show act
+                err: disarm err
+                inform layout [
+                    info 200x200 mold err
+                    btn-cancel "Close" [
+                        unview
+                        system/view/pop-face: none
+                        clear system/view/pop-list
+                    ]
+                ]
+            ]
+
             if old-state-id <> state/state [
-                state-object: select states old-state-id
-                if state-object [
-                    state-object/active: off
-                    state-object/update-graphics
+                active-object: select states old-state-id
+                if active-object [
+                    active-object/active: off
+                    active-object/update-graphics
                 ]
 
-                state-object: select states state/state
-                state-object/active: on
-                state-object/update-graphics
+                active-object: select states state/state
+                active-object/active: on
+                active-object/update-graphics
 
                 show canvas
             ]
@@ -762,6 +784,14 @@ view/new layout [
             ] ]
     properties: panel 150x800 [] edge [ size: 1x1 colour: black ]
     return
+    btn "New" [
+        states: reduce [ none none ]
+        transitions: copy []
+        select-object none
+        transformation/offset: 0x0 transformation/scale: 1
+        update-canvas
+        show [ canvas properties ]
+    ]
     btn "Open" #"^o" [
         filename: request-file/title/filter/keep/only "Open state machine" "OK" "*.sm" 
         if filename [
@@ -845,7 +875,7 @@ handle-events: func [
                 #"t" [
                     if all [ selected selected/type = 'state ] [
                         under-mouse: find-mouse-hit states transformation/face-to-canvas mouse-pos
-                        if all [ under-mouse under-mouse/type = state ] [
+                        if all [ under-mouse under-mouse/type = 'state ] [
                             transition: new-transition [ from-state: selected to-state: under-mouse ]
                             update-canvas
                             select-object transition
