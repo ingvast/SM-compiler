@@ -1,6 +1,6 @@
 SM-COMPILER
 format 0.1
-Save-date 20-May-2019/9:25:41+2:00
+Save-date 24-May-2019/8:14:52+2:00
 
 States
 [
@@ -102,7 +102,7 @@ Transitions
 	to-state:	281489611
 ]
 [
-	transition-clause:	"t > 1"
+	transition-clause:	"t > 0:0:1"
 	label:	"t > 1"
 	from-state:	281489611
 	to-state:	1009293380

@@ -230,7 +230,7 @@ rot-90: func [ vect ][ as-pair vect/2 negate vect/1 ]
 transition-object: make object! [
     type: 'transition
     id: none
-    label: transition-clause: ""
+    transition-clause: ""
     from-state: none
     to-state: none
 
@@ -244,7 +244,7 @@ transition-object: make object! [
         ;line knot1 knot2
         pen none fill-pen black
         translate knot1
-        text vectorial 0x0 label
+        text vectorial 0x0 transition-clause
     ]
     from-pos: 0x0
     to-pos: 0x0
@@ -266,7 +266,6 @@ transition-object: make object! [
         knot1: vector * 0.4 + from-pos + ( ( rot-90 dir ) * 0.20 )
         knot2: vector * 0.6 + from-pos + ( ( rot-90 dir ) * 0.20 )
 
-        if any [ not label empty? label ] [ label: transition-clause ]
         arrow-color: case [
             active [ active-color ]
             highlight [ 255.30.30 ]
@@ -440,7 +439,7 @@ save-sm: func [
     repend content {Transitions^/}
     foreach tran transitions [
         append content {[^/}
-        foreach field-name [ transition-clause label from-state to-state ][
+        foreach field-name [ transition-clause from-state to-state ][
             value: get in tran field-name
             if object? value [ value: value/id ]
             repend content [ tab field-name ":" tab mold value newline]
