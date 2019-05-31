@@ -5,18 +5,19 @@ REBOL [
         * Simulate directly without making function
         * Move running buttons into system
         * Direct lookup of clicks from double map
-        * Order of transitions.
         * Program part of this program with tool itself.
         * Export to pdf
+        * Remove list of transitions, keep them in nodes
     }
     DONE: {
         * Fix system starting point
         * Button for making new system.
+        * Order of transitions.
     }
 ]
 
 do %vid-extension.r
-pdf-lib: do %../pdf-export/face-to-pdf-lib.r
+; pdf-lib: do %../pdf-export/face-to-pdf-lib.r
 
 text-size: func [ str ][ size-text make face [ text: str ] ]
 normalize-100: func [
@@ -35,6 +36,13 @@ rot-90: func [ vect ][ as-pair vect/2 negate vect/1 ]
 
 id?: :integer?
 
+fonts: context [
+    node-title: make face/font []
+    transition-clause: make face/font [ size: 10 ]
+    transition-order: make face/font [ size: 8 ]
+]
+
+
 state-object: make object! [
     type: 'state
     id: none
@@ -47,6 +55,7 @@ state-object: make object! [
         translate position 
         circle 0x0 radius
         pen none fill-pen textcolor
+        font fonts/node-title
         text vectorial text-position name
         ]
     to-transitions: []
@@ -65,6 +74,12 @@ state-object: make object! [
             ]
             text-position: (text-size name ) / -2 
     ]
+    update-transitions: func [
+        /local
+    ][
+        repeat i length? from-transitions [ from-transitions/:i/order: i ]
+    ]
+
     highlight: off
     active: off
     pos-in: func [ pos ][
@@ -230,13 +245,14 @@ new-starting-node: func [
     node
 ]
 
-
 transition-object: make object! [
     type: 'transition
     id: none
     transition-clause: ""
     from-state: none
     to-state: none
+    order: 1
+    order-text: to-string order
 
     draw-code: [
         pen arrow-color 
@@ -244,9 +260,14 @@ transition-object: make object! [
         fill-pen none
         arrow 1x0
         curve  from-pos knot1 knot2 to-pos
+        fill-pen order-color
+        pen none
+        font fonts/transition-order
+        text vectorial from-pos order-text
         ;arrow 0x0
         ;line knot1 knot2
         pen none fill-pen black
+        font fonts/transition-clause
         translate knot1
         text vectorial 0x0 transition-clause
     ]
@@ -255,11 +276,13 @@ transition-object: make object! [
     knot1: knot2: 0x0
     arrow-color: black
     active-color: green
+    order-color: olive * 1.3
     highlight: off
     active: off
     update-graphics: func [
         /local vector vector-length
     ][
+        order-text: to-string order
         vector: to-state/position - from-state/position
         dir: normalize-100 vector
         to-pos: to-state/position - ( dir * ( 3 + to-state/radius ) / 100 )
@@ -276,27 +299,44 @@ transition-object: make object! [
             true [ 10.10.10 ] 
         ]
     ]
-    properties-layout: [
-        origin 0x0
-        across
-        tabs [ 75 ]
-        space 2x2
-        text bold from-state/name  [
-            select-object from-state
-            properties-dialog from-state
-            show [ canvas properties ]
+    orders: none
+    properties-layout:
+    use [ order-drop-down ][
+        [
+            origin 0x0
+            across
+            tabs [ 75 ]
+            space 2x2
+            text bold from-state/name  [
+                select-object from-state
+                properties-dialog from-state
+                show [ canvas properties ]
+            ]
+            return
+            box 20x15 effect[draw[ pen black arrow 1x0 line 10x0 10x15 ]]
+            do [
+                orders: copy [ ]
+                repeat i length? from-state/from-transitions [ append orders to-string i ]
+            ]
+            order-drop-down: drop-down 100 data orders 
+                [ 
+                    order: to integer! value
+                    replace from-state/from-transitions self []
+                    insert at from-state/from-transitions order self
+                    from-state/update-transitions
+                    update-canvas show canvas
+                ]
+            do [ order-drop-down/text: to-string order ]
+            return
+            text bold to-state/name  [
+                select-object to-state
+                properties-dialog to-state
+                show [ canvas properties ]
+            ]
+            return
+            text "Transition clause" return
+                area transition-clause 150x200 [ show canvas ]
         ]
-        return
-        box 100x15 effect[draw[ pen black arrow 1x0 line 10x0 10x15 ]]
-        return
-        text bold to-state/name  [
-            select-object to-state
-            properties-dialog to-state
-            show [ canvas properties ]
-        ]
-        return
-        text "Transition clause" return
-            area transition-clause 150x200 [ show canvas ]
     ]
 ]
 
@@ -310,6 +350,8 @@ new-transition: func [
     if id? tran/to-state [ tran/to-state: select states tran/to-state ]
     append tran/from-state/from-transitions tran
     append tran/to-state/to-transitions     tran
+
+    tran/order: length? tran/from-state/from-transitions
 
     tran/update-graphics
     append transitions tran
