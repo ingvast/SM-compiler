@@ -7,18 +7,33 @@ REBOL [
         * Direct lookup of clicks from double map
         * Order of transitions.
         * Program part of this program with tool itself.
-        * Button for making new system.
         * Export to pdf
     }
     DONE: {
         * Fix system starting point
+        * Button for making new system.
     }
 ]
 
 do %vid-extension.r
+pdf-lib: do %../pdf-export/face-to-pdf-lib.r
 
 text-size: func [ str ][ size-text make face [ text: str ] ]
+normalize-100: func [
+    pair
+    /local len
+][
+    len: square-root pair/x  ** 2 + (pair/y ** 2 )
+    either len < 1  [
+        71x71
+    ][
+        pair * ( 100 / len )
+    ]
+]
 
+rot-90: func [ vect ][ as-pair vect/2 negate vect/1 ]
+
+id?: :integer?
 
 state-object: make object! [
     type: 'state
@@ -100,7 +115,11 @@ state-object: make object! [
             use [ lst ][
                 lst: copy []
                 foreach i to-transitions [
-                    append/only lst reduce [ any [ i/from-state/name i/from-state/id ] i/transition-clause i ]
+                    unless i/from-state/type = 'start [
+                    append/only lst reduce [
+                            any [ i/from-state/name i/from-state/id ] i/transition-clause i
+                        ]
+                    ]
                 ]
                 reduce [ lst ]
             ]
@@ -130,9 +149,7 @@ state-object: make object! [
         )
     ]
 ]
-id?: :integer?
 
-states: copy [ none none ]
 
 new-state-node: func [
     {Creates a node and adds to the SM}
@@ -187,7 +204,7 @@ starting-object: make state-object [
         across
         h2 "Starting point"
         return
-        text "Staring:"
+        text "Starting:"
         info from-transitions/1/to-state/name
         return
 
@@ -213,19 +230,6 @@ new-starting-node: func [
     node
 ]
 
-normalize-100: func [
-    pair
-    /local len
-][
-    len: square-root pair/x  ** 2 + (pair/y ** 2 )
-    either len < 1  [
-        71x71
-    ][
-        pair * ( 100 / len )
-    ]
-]
-
-rot-90: func [ vect ][ as-pair vect/2 negate vect/1 ]
 
 transition-object: make object! [
     type: 'transition
@@ -296,7 +300,6 @@ transition-object: make object! [
     ]
 ]
 
-transitions: copy []
 
 new-transition: func [
     spec
@@ -312,6 +315,9 @@ new-transition: func [
     append transitions tran
     tran
 ]
+
+states: copy [ none none ]
+transitions: copy []
 
 properties-dialog: func [ object ][
     properties/pane: layout compose object/properties-layout
@@ -336,9 +342,6 @@ set-state-name: func [
     ] 
     state/name: name
 ]
-
-
-
 
 update-transitions: func [ transitions ][
     foreach t transitions [ t/update-graphics ]
@@ -513,7 +516,6 @@ transformation: context [
 
     ; face = canvas * scale + transfer
     ; canvas = ( face -transfer ) / scale
-    
 
     canvas-to-face-pos: func [ pos ][
         pos * scale + offset
@@ -776,7 +778,8 @@ view/new layout [
     across 
     canvas: box ivory 800x800 "" top left
             edge  [ size: 1x1 colour: black ]
-            effect [ draw [ translate transformation/offset
+            effect [ draw [
+                    translate transformation/offset
                     scale transformation/scale transformation/scale
                     push drawing-transitions
                     push drawing-states
@@ -810,6 +813,14 @@ view/new layout [
     btn "Quit" #"^q" [unview]
     
     btn "Export model" [ export 'rebol none ]
+    btn "PDF" [
+            pdf-file: request-file/title/filter/keep/only/save "Save pdf" "OK" "*.pdf"
+            if pdf-file [
+                unless find pdf-file "." [ append pdf-file ".sm" ]
+                write pdf-file pdf-lib/face-to-pdf canvas
+            ]
+    ]
+                
     btn "Run"  [ simulate-sm ]
 ]
 
