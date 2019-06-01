@@ -104,7 +104,7 @@ state-object: make object! [
         text "Radius" tab field to-string radius [
                     radius: any [ attempt [ to-decimal do value ] 50 ]
                     update-graphics
-                    update-transitions transitions
+                    update-transitions 
                     face/text: radius
                     show [ canvas  face ]
         ]
@@ -188,8 +188,6 @@ remove-state-node: func [ state ][
             remove/part back find states state 2
         ]
     ]
-    foreach tr state/to-transitions [ remove find transitions tr ]
-    foreach tr state/from-transitions [ remove find transitions tr ]
     update-canvas
 ]
 
@@ -355,12 +353,10 @@ new-transition: func [
     tran/order: length? tran/from-state/from-transitions
 
     tran/update-graphics
-    append transitions tran
     tran
 ]
 
 states: copy [ none none ]
-transitions: copy []
 
 properties-dialog: func [ object ][
     properties/pane: layout compose object/properties-layout
@@ -386,8 +382,21 @@ set-state-name: func [
     state/name: name
 ]
 
-update-transitions: func [ transitions ][
-    foreach t transitions [ t/update-graphics ]
+for-transition: func [
+    'var [word!]
+    block [block!]
+    /local
+][
+    f: func reduce [ var ] block
+    foreach [id state] states [
+        foreach tr state/from-transitions  [
+            f tr
+        ]
+    ]
+]
+
+update-transitions: func [ ][
+    for-transition t [ t/update-graphics ]
 ]
 
 update-states: func [ states ][
@@ -404,7 +413,6 @@ load-sm: func [
     either 'file = get in info? file 'type [
         content: load file
 
-        clear transitions
         clear states
         repend states [ none  none ]
         
@@ -483,7 +491,7 @@ save-sm: func [
     ]
     
     repend content {Transitions^/}
-    foreach tran transitions [
+    for-transition tran [
         append content {[^/}
         foreach field-name [ transition-clause from-state to-state ][
             value: get in tran field-name
@@ -501,9 +509,9 @@ update-canvas: does [
     drawing-states: copy []
     drawing-transitions: copy []
     foreach [id s ] states [ if id [ append drawing-states reduce [ 'push s/draw-code ] ] ]
-    foreach t transitions [ append drawing-states reduce[ 'push t/draw-code ]]
+    for-transition t [ append drawing-states reduce[ 'push t/draw-code ]]
     update-states states
-    update-transitions transitions
+    update-transitions 
 ]
 
 find-mouse-hit: func [ objects pos ][
@@ -521,7 +529,7 @@ make object! [
     set 'move-state func [ new-pos /local ][
         ;if all [ current-selection current-selection/type = 'state ] [
             current-selection/position: (transformation/face-to-canvas new-pos) - ref-pos
-            update-transitions transitions
+            update-transitions 
         ;]
     ]
     set 'move-state-initialize func [ down-pos /local down-in-canvas ][
@@ -831,7 +839,6 @@ view/new layout [
     return
     btn "New" [
         states: reduce [ none none ]
-        transitions: copy []
         select-object none
         transformation/offset: 0x0 transformation/scale: 1
         update-canvas
