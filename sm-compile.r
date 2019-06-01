@@ -8,6 +8,7 @@ REBOL [
         * Program part of this program with tool itself.
         * Export to pdf
         * Remove list of transitions, keep them in nodes
+        * Remove the transition list. Change update order.
     }
     DONE: {
         * Fix system starting point
