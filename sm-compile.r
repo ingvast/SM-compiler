@@ -9,6 +9,7 @@ REBOL [
         * Export to pdf
         * Remove list of transitions, keep them in nodes
         * Remove the transition list. Change update order.
+        * Change selected to highlight
     }
     DONE: {
         * Fix system starting point
@@ -16,6 +17,23 @@ REBOL [
         * Order of transitions.
     }
 ]
+
+{
+    How is different levels of updating done.
+
+    * Graphical updating
+        variables that will affect the way it displays
+        - text positions
+        - transition positions
+        - Change of text content
+        - Hightlighted/active
+
+    * Variable updating
+        Fixing dependent variables.
+        Typically order of transitions in case rearranged. (not related only to graphics)
+
+    * Viewing (show)
+}
 
 do %vid-extension.r
 ; pdf-lib: do %../pdf-export/face-to-pdf-lib.r
@@ -58,7 +76,7 @@ state-object: make object! [
         pen none fill-pen textcolor
         font fonts/node-title
         text vectorial text-position name
-        ]
+    ]
     to-transitions: []
     from-transitions: []
     radius: 50
@@ -182,9 +200,16 @@ new-state-node: func [
 ]
 
 remove-state-node: func [ state ][
+dbg: make state []
     switch state/type [
         start [ states/1: none states/2: none ]
         state [
+            foreach tran copy state/to-transitions [ 
+                remove-transition tran
+            ]
+            foreach tran copy state/from-transitions [ 
+                remove-transition tran
+            ]
             remove/part back find states state 2
         ]
     ]
@@ -354,6 +379,13 @@ new-transition: func [
 
     tran/update-graphics
     tran
+]
+
+remove-transition: func [
+    transition
+][
+    replace transition/to-state/to-transitions transition []
+    replace transition/from-state/from-transitions transition []
 ]
 
 states: copy [ none none ]
