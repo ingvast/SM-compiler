@@ -4,10 +4,11 @@ REBOL [
     TODO: {
         * Simulate directly without making function
         * Move running buttons into system
-        * Direct lookup of clicks from double map
         * Program part of this program with tool itself.
         * Export to pdf
         * Change selected to highlight
+        -------------------------------
+        * Direct lookup of clicks from double map
     }
     DONE: {
         * Remove list of transitions, keep them in nodes
@@ -182,8 +183,18 @@ state-object: make object! [
             ]
         )
     ]
+    remove: func [ /local remove* ][
+        remove*: get in system/words 'remove 
+        foreach tran copy to-transitions [ 
+            tran/remove
+        ]
+        foreach tran copy from-transitions [ 
+            tran/remove
+        ]
+        remove*/part back find states self 2
+        update-canvas
+    ]
 ]
-
 
 new-state-node: func [
     {Creates a node and adds to the SM}
@@ -197,23 +208,6 @@ new-state-node: func [
     set-state-name state state/name ; Will throw an error if name occupied
     repend states [ state/id state ]
     state
-]
-
-remove-state-node: func [ state ][
-dbg: make state []
-    switch state/type [
-        start [ states/1: none states/2: none ]
-        state [
-            foreach tran copy state/to-transitions [ 
-                remove-transition tran
-            ]
-            foreach tran copy state/from-transitions [ 
-                remove-transition tran
-            ]
-            remove/part back find states state 2
-        ]
-    ]
-    update-canvas
 ]
 
 ; Start points will always be first obejct in states. In case there is
@@ -252,6 +246,11 @@ starting-object: make state-object [
             The starting point is marked with black blob.
             No code is executed besides what happens when the execution point reaches the first state
             }
+    ]
+    remove: func [ ][
+        from-transitions/1/remove
+        states/1: states/2: none
+        update-canvas
     ]
 ]
 
@@ -348,7 +347,8 @@ transition-object: make object! [
                     replace from-state/from-transitions self []
                     insert at from-state/from-transitions order self
                     from-state/update-transitions
-                    update-canvas show canvas
+                    update-canvas
+                    show canvas
                 ]
             do [ order-drop-down/text: to-string order ]
             return
@@ -362,6 +362,12 @@ transition-object: make object! [
                 area transition-clause 150x200 [ show canvas ]
         ]
     ]
+    remove: func [ ][
+        replace from-state/from-transitions self []
+        replace to-state/to-transitions self []
+        update-canvas
+    ]
+
 ]
 
 
@@ -379,13 +385,6 @@ new-transition: func [
 
     tran/update-graphics
     tran
-]
-
-remove-transition: func [
-    transition
-][
-    replace transition/to-state/to-transitions transition []
-    replace transition/from-state/from-transitions transition []
 ]
 
 states: copy [ none none ]
@@ -415,14 +414,17 @@ set-state-name: func [
 ]
 
 for-transition: func [
+    [catch]
     'var [word!]
     block [block!]
     /local
 ][
     f: func reduce [ var ] block
     foreach [id state] states [
-        foreach tr state/from-transitions  [
-            f tr
+        if state [
+            foreach tr state/from-transitions  [
+                f tr
+            ]
         ]
     ]
 ]
@@ -989,12 +991,10 @@ handle-events: func [
                 ]
                         
                 #"^~" [  ; Delete node
-                        if  find [ start state ] selected/type [
-                            remove-state-node selected
-                            properties/pane: none
-                            select-object none
-                            show [ canvas properties ]
-                        ]
+                        selected/remove
+                        properties/pane: none
+                        select-object none
+                        show [ canvas properties ]
                     ]
                 #"^[" [ select-object none properties/pane: none show [ canvas properties ] ]
             ]
