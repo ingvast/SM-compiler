@@ -7,11 +7,11 @@ REBOL [
         * Direct lookup of clicks from double map
         * Program part of this program with tool itself.
         * Export to pdf
-        * Remove list of transitions, keep them in nodes
-        * Remove the transition list. Change update order.
         * Change selected to highlight
+        * Look over update order
     }
     DONE: {
+        * Remove list of transitions, keep them in nodes
         * Fix system starting point
         * Button for making new system.
         * Order of transitions.
