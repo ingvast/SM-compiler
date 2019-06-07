@@ -7,6 +7,7 @@ REBOL [
         * Program part of this program with tool itself.
         * Export to pdf
         * Change selected to highlight
+        * Implement Undo
         -------------------------------
         * Direct lookup of clicks from double map
     }
@@ -128,11 +129,11 @@ state-object: make object! [
                     show [ canvas  face ]
         ]
         return
-        text "Text colour" tab field to-string textcolor [
-                        textcolor: any [ attempt [ to-tuple do value ] black ]
-                        update-graphics face/text: textcolor show [ canvas face]
-                    ]
-        return
+        ;text "Text colour" tab field to-string textcolor [
+                        ;textcolor: any [ attempt [ to-tuple do value ] black ]
+                        ;update-graphics face/text: textcolor show [ canvas face]
+                    ;]
+        ;return
         text "Reach transitions here" return
         dyn-list 150x100 [ across space 0x0 
                 text 80 "from state" edge[ color: black size: 0x1]
@@ -861,6 +862,7 @@ simulate-sm: func [
 
 view/new layout [
     across 
+    origin 0x0 space 0x0
     canvas: box ivory 800x800 "" top left
             edge  [ size: 1x1 colour: black ]
             effect [ draw [
