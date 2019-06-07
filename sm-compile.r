@@ -8,13 +8,13 @@ REBOL [
         * Program part of this program with tool itself.
         * Export to pdf
         * Change selected to highlight
-        * Look over update order
     }
     DONE: {
         * Remove list of transitions, keep them in nodes
         * Fix system starting point
         * Button for making new system.
         * Order of transitions.
+        * Look over update order
     }
 ]
 
