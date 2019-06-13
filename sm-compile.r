@@ -134,6 +134,29 @@ state-object: make object! [
                         ;update-graphics face/text: textcolor show [ canvas face]
                     ;]
         ;return
+        text "Leave transition" return
+        dyn-list 150x100 [ across space 0x0 
+                text 80 "To state" edge[ color: black size: 0x1]
+                    [   properties-dialog face/parent-face/pane/3/text
+                        select-object face/parent-face/pane/3/text
+                        show [ canvas properties ]
+                    ]
+                text 60 "clause" edge[color: black size: 0x1]
+                    [   properties-dialog face/parent-face/pane/3/text
+                        select-object face/parent-face/pane/3/text
+                        show [ canvas properties ]
+                    ]
+                text 0x0 "object"  with [ show?: off ]
+            ] data (
+            use [ lst ][
+                lst: copy []
+                foreach i from-transitions [
+                    append/only lst reduce [ any [ i/to-state/name i/to-state/id ] i/transition-clause i ]
+                ]
+                reduce [ lst ]
+            ]
+        )
+        return
         text "Reach transitions here" return
         dyn-list 150x100 [ across space 0x0 
                 text 80 "from state" edge[ color: black size: 0x1]
@@ -156,29 +179,6 @@ state-object: make object! [
                             any [ i/from-state/name i/from-state/id ] i/transition-clause i
                         ]
                     ]
-                ]
-                reduce [ lst ]
-            ]
-        )
-        return
-        text "Leave transition" return
-        dyn-list 150x100 [ across space 0x0 
-                text 80 "To state" edge[ color: black size: 0x1]
-                    [   properties-dialog face/parent-face/pane/3/text
-                        select-object face/parent-face/pane/3/text
-                        show [ canvas properties ]
-                    ]
-                text 60 "clause" edge[color: black size: 0x1]
-                    [   properties-dialog face/parent-face/pane/3/text
-                        select-object face/parent-face/pane/3/text
-                        show [ canvas properties ]
-                    ]
-                text 0x0 "object"  with [ show?: off ]
-            ] data (
-            use [ lst ][
-                lst: copy []
-                foreach i from-transitions [
-                    append/only lst reduce [ any [ i/to-state/name i/to-state/id ] i/transition-clause i ]
                 ]
                 reduce [ lst ]
             ]
@@ -324,8 +324,7 @@ transition-object: make object! [
         ]
     ]
     orders: none
-    properties-layout:
-    use [ order-drop-down ][
+    properties-layout: use [ order-drop-down ][
         [
             origin 0x0
             across
@@ -342,7 +341,7 @@ transition-object: make object! [
                 orders: copy [ ]
                 repeat i length? from-state/from-transitions [ append orders to-string i ]
             ]
-            order-drop-down: drop-down 100 data orders 
+            order-drop-down: drop-down 50 data orders 
                 [ 
                     order: to integer! value
                     replace from-state/from-transitions self []
