@@ -38,7 +38,7 @@ REBOL [
 }
 
 do %vid-extension.r
-; pdf-lib: do %../pdf-export/face-to-pdf-lib.r
+pdf-lib: do %../pdf-export/face-to-pdf-lib.r
 
 text-size: func [ str ][ size-text make face [ text: str ] ]
 normalize-100: func [
