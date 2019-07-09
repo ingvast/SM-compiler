@@ -5,9 +5,13 @@ REBOL [
         * Simulate directly without making function
         * Move running buttons into system
         * Program part of this program with tool itself.
-        * Export to pdf
         * Change selected to highlight
         * Implement Undo
+        * Make virtual group
+        * Other shapes of states
+        * Nicer connections between states
+        * Handle for resizing states and virtual groups
+        * Blink the transition that makes the transition
         -------------------------------
         * Direct lookup of clicks from double map
     }
@@ -17,6 +21,7 @@ REBOL [
         * Button for making new system.
         * Order of transitions.
         * Look over update order
+        * Export to pdf /2019-07-09
     }
 ]
 
@@ -35,6 +40,25 @@ REBOL [
         Typically order of transitions in case rearranged. (not related only to graphics)
 
     * Viewing (show)
+
+}
+{ Virtual groups
+    Mainly for handling errors/exceptions.
+    Instead of having systems in systems, make virtual groups which are simpler.
+    One can see the virtual groups as a way of putting the same transition codes into several states.
+    Transitions from a virtual group is run before any other transitions.
+    Exit code of the virtual group is run after the exit code of the real state
+    Only exit transitions to start with.
+
+    Can virtual groups be overlapping?
+
+    Implementation:
+        * Inherits a state-object
+        * Has a list of all state-objects that belong to it.
+        * state-objects have a list of all the virtual groups it belong to. First in list evaluated first.
+        * Has a name and id, but can not be a state itself.
+        * Should have its border dashed.
+        * Is not highlighted in simulation.
 }
 
 do %vid-extension.r
