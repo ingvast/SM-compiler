@@ -8,6 +8,7 @@ REBOL [
         * Change selected to highlight
         * Implement Undo
         * Make virtual group
+        * Select object by object-number and color
         * Other shapes of states
         * Nicer connections between states
         * Handle for resizing states and virtual groups
@@ -94,6 +95,16 @@ state-object: make object! [
     name: "State"
     entry-code: {}
     exit-code: {}
+
+    select-id: [
+        face                0.0.0.0
+        edge                0.0.0.1
+        label               0.0.0.2
+        transition-0        0.0.0.64
+        transition-label-0  0.0.0.65
+        transition-1        0.0.0.66
+        transition-label-1  0.0.0.67
+    ]
     draw-code: [
         pen pencolor fill-pen none
         line-width 3
@@ -103,6 +114,21 @@ state-object: make object! [
         font fonts/node-title
         text vectorial text-position name
     ]
+    select-code: [
+        pen select-id/edge
+        fill-pen select-id/face
+        line-width 3
+        translate position
+        circle 0x0 radius
+    ]
+    prepare-id-numbers: func [ /local v ][
+        forall select-id [
+            v: id
+            v/4: select-id/2/4
+            select-id: next select-id
+        ]
+    ]
+
     to-transitions: []
     from-transitions: []
     radius: 50
@@ -112,12 +138,12 @@ state-object: make object! [
     active-color: green
     textcolor: black
     update-graphics: func [][
-            pencolor: case [
-                active [ active-color ]
-                highlight [ 255.30.30 ]
-                true [ 10.10.10 ] 
-            ]
-            text-position: (text-size name ) / -2 
+        pencolor: case [
+            active [ active-color ]
+            highlight [ 255.30.30 ]
+            true [ 10.10.10 ] 
+        ]
+        text-position: (text-size name ) / -2 
     ]
     update-transitions: func [
         /local
@@ -153,7 +179,7 @@ state-object: make object! [
                     show [ canvas  face ]
         ]
         return
-        ;text "Text colour" tab field to-string textcolor [
+        ;text "Text color" tab field to-string textcolor [
                         ;textcolor: any [ attempt [ to-tuple do value ] black ]
                         ;update-graphics face/text: textcolor show [ canvas face]
                     ;]
@@ -220,14 +246,23 @@ state-object: make object! [
         update-canvas
     ]
 ]
+new-id: does [
+    ; Three first bytes are for identifying the object to which it belongs.
+    ; the last is set by the object and is for specifying different parts of the object.
+    random 255.255.255.0
+]
 
 new-state-node: func [
     {Creates a node and adds to the SM}
     spec /local
-        state new-id 
+        state 
 ][
-    new-id: round random 2 ** 30
-    state: make state-object [ name: join "S" to-string id: new-id ]
+    state: make state-object [
+        name: join  "S"
+                    to-string
+                        id: new-id
+        prepare-id-numbers
+    ]
     state: make state spec
     ;state: make state compose [ id: new-id ]
     set-state-name state state/name ; Will throw an error if name occupied
@@ -284,9 +319,8 @@ new-starting-node: func [
     state [number! object!] {The state it should start with}
     pos [ pair! ] 
     /local
-        node new-id 
+        node
 ][
-    new-id: round random 2 ** 30
     node: make starting-object [ id: new-id position: pos ]
     new-transition [ from-state: node to-state: state ]
     change/part states reduce [ node/id node ] 2
@@ -887,14 +921,14 @@ view/new layout [
     across 
     origin 0x0 space 0x0
     canvas: box ivory 800x800 "" top left
-            edge  [ size: 1x1 colour: black ]
+            edge  [ size: 1x1 color: black ]
             effect [ draw [
                     translate transformation/offset
                     scale transformation/scale transformation/scale
                     push drawing-transitions
                     push drawing-states
             ] ]
-    properties: panel 150x800 [] edge [ size: 1x1 colour: black ]
+    properties: panel 150x800 [] edge [ size: 1x1 color: black ]
     return
     btn "New" [
         states: reduce [ none none ]
@@ -932,6 +966,19 @@ view/new layout [
                 
     btn "Run"  [ simulate-sm ]
 ]
+
+    to-image layout [ 
+        select-box:   box 0.0.0.0 800x800 "" top left
+                edge  [ size: 1x1 color: 0.0.0.0 ]
+                effect [ draw [
+                        translate transformation/offset
+                        scale transformation/scale transformation/scale
+                        push select-transitions
+                        push select-states
+                ] ]
+    ]
+]
+select-image: 
 
 selected: none
 select-object: func [ object ][
