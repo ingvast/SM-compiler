@@ -80,7 +80,7 @@ normalize-100: func [
 
 rot-90: func [ vect ][ as-pair vect/2 negate vect/1 ]
 
-id?: :integer?
+id?: func [ x ][ all [ tuple? x 4 = length? x ] ]
 
 fonts: context [
     node-title: make face/font []
@@ -97,13 +97,13 @@ state-object: make object! [
     exit-code: {}
 
     select-id: [
-        face                0.0.0.0
-        edge                0.0.0.1
-        label               0.0.0.2
-        transition-0        0.0.0.64
-        transition-label-0  0.0.0.65
-        transition-1        0.0.0.66
-        transition-label-1  0.0.0.67
+        face                0.0.0
+        edge                0.0.1
+        label               0.0.2
+        transition-0        0.0.64
+        transition-label-0  0.0.65
+        transition-1        0.0.66
+        transition-label-1  0.0.67
     ]
     draw-code: [
         pen pencolor fill-pen none
@@ -124,7 +124,8 @@ state-object: make object! [
     prepare-id-numbers: func [ /local v ][
         forall select-id [
             v: id
-            v/4: select-id/2/4
+            v/3: select-id/2/3
+            select-id/2: v
             select-id: next select-id
         ]
     ]
@@ -249,7 +250,7 @@ state-object: make object! [
 new-id: does [
     ; Three first bytes are for identifying the object to which it belongs.
     ; the last is set by the object and is for specifying different parts of the object.
-    random 255.255.255.0
+    random 255.255.0 
 ]
 
 new-state-node: func [
@@ -600,34 +601,41 @@ save-sm: func [
 update-canvas: does [ 
     drawing-states: copy []
     drawing-transitions: copy []
-    foreach [id s ] states [ if id [ append drawing-states reduce [ 'push s/draw-code ] ] ]
-    for-transition t [ append drawing-states reduce[ 'push t/draw-code ]]
+    select-states: copy []
+    select-transitions: copy []
+    foreach [id s ] states [ if id [
+        append drawing-states reduce [ 'push s/draw-code ]
+        append select-states reduce [ 'push s/select-code ]
+    ] ]
+    for-transition t [
+        append drawing-states reduce[ 'push t/draw-code ]
+    ]
     update-states states
     update-transitions 
 ]
 
+find-mouse-hit-value: func [ pos ][
+    pick get-select-image pos
+]
 find-mouse-hit: func [ objects pos ][
-    foreach [id s ] states [
-        if all [ s s/pos-in pos ] [
-            return s
-        ]
-    ]
-    none
+    select objects find-mouse-hit-value pos
 ]
 
 make object! [
     current-selection: none
     ref-pos: none
     set 'move-state func [ new-pos /local ][
-        ;if all [ current-selection current-selection/type = 'state ] [
+        if all [ current-selection current-selection/type = 'state ] [
             current-selection/position: (transformation/face-to-canvas new-pos) - ref-pos
             update-transitions 
-        ;]
+        ]
     ]
-    set 'move-state-initialize func [ down-pos /local down-in-canvas ][
-        down-in-canvas: transformation/face-to-canvas down-pos
-        current-selection: find-mouse-hit states down-in-canvas
+    set 'move-state-initialize func [ down-pos /local ][
+
+        current-selection: find-mouse-hit states down-pos
+
         if current-selection [
+            down-in-canvas: transformation/face-to-canvas down-pos
             ref-pos: down-in-canvas - current-selection/position
         ]
     ]
@@ -967,18 +975,21 @@ view/new layout [
     btn "Run"  [ simulate-sm ]
 ]
 
-    to-image layout [ 
-        select-box:   box 0.0.0.0 800x800 "" top left
-                edge  [ size: 1x1 color: 0.0.0.0 ]
-                effect [ draw [
-                        translate transformation/offset
-                        scale transformation/scale transformation/scale
-                        push select-transitions
-                        push select-states
-                ] ]
-    ]
+select-box: make face [
+    size: canvas/size
+    color: black
+    effect: [ draw [
+        anti-alias off
+        translate transformation/offset
+        scale transformation/scale transformation/scale
+        push select-transitions
+        push select-states
+    ] ]
+
 ]
-select-image: 
+
+
+get-select-image: does [ show select-box to-image select-box ]
 
 selected: none
 select-object: func [ object ][
@@ -998,23 +1009,31 @@ handle-events: func [
     /local
         mouse-pos transition state
         under-mouse
+        hit
 ][
     local: [ over-handler none state-from none state-to none ]  ; Static variables
     system/view/focal-face: face
     system/view/caret: face/text
     mouse-pos: event/offset
+
     switch action [
         down [
             move-state-initialize mouse-pos
-
-            either state: find-mouse-hit states transformation/face-to-canvas mouse-pos [
-                select-object state
-                properties-dialog selected
-                local/over-handler: :move-state
-                show [ canvas properties]
-            ] [
-                transformation/translate-init-handler mouse-pos
-                local/over-handler: get in transformation 'translate-handler
+            hit: find-mouse-hit-value mouse-pos
+            case [
+                hit = 0.0.0.0 [ ; background
+                    transformation/translate-init-handler mouse-pos
+                    local/over-handler: get in transformation 'translate-handler
+                ]
+                hit/3 = 0 [ ; state
+                    select-object select states hit
+                    properties-dialog selected
+                    local/over-handler: :move-state
+                    show [ canvas properties]
+                ]       
+                true [ 
+                    print [ "Found unexpected color" hit ]
+                ]
             ]
         ]
         over [
@@ -1022,7 +1041,7 @@ handle-events: func [
             show face
         ]
         alt-down [
-            local/state-from: find-mouse-hit states transformation/face-to-canvas mouse-pos
+            local/state-from: find-mouse-hit states mouse-pos
             local/over-handler: none
         ]
         key [
@@ -1036,11 +1055,11 @@ handle-events: func [
                         ]
                         update-canvas
                         properties-dialog selected
-                        show [ canvas properties ]
+                        show [ canvas properties select-box ]
                     ]
                 #"t" [
                     if all [ selected selected/type = 'state ] [
-                        under-mouse: find-mouse-hit states transformation/face-to-canvas mouse-pos
+                        under-mouse: find-mouse-hit states mouse-pos
                         if all [ under-mouse under-mouse/type = 'state ] [
                             transition: new-transition [ from-state: selected to-state: under-mouse ]
                             update-canvas
@@ -1050,9 +1069,10 @@ handle-events: func [
                         ]
                     ]
                 ]
-                #"b" [
-                    if all [ selected selected/type = 'state 
-                                not find-mouse-hit states transformation/face-to-canvas mouse-pos
+                #"b" [ ; place an init marker
+                    if all [
+                                selected selected/type = 'state 
+                                0.0.0 = find-mouse-hit-value mouse-pos
                                 not states/1
                     ] [
                             node: new-starting-node selected transformation/face-to-canvas mouse-pos 
@@ -1067,8 +1087,13 @@ handle-events: func [
                         properties/pane: none
                         select-object none
                         show [ canvas properties ]
-                    ]
-                #"^[" [ select-object none properties/pane: none show [ canvas properties ] ]
+                ]
+
+                #"^[" [
+                    select-object none
+                    properties/pane: none
+                    show [ canvas properties ]
+                ]
             ]
         ]
     ]
@@ -1082,10 +1107,14 @@ canvas/feel: make canvas/feel [
 
 canvas/text: ""
 
-load-sm %blinky-2.sm
+;load-sm %start.sm
 
 update-canvas
 show [ canvas properties ]
+
+;view/new select-box
+
+print "Starting"
 
 
 if all [ error? e: try [ do-events ] ] [
