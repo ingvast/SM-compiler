@@ -14,7 +14,6 @@ REBOL [
         * Handle for resizing states and virtual groups
         * Blink the transition that makes the transition
         -------------------------------
-        * Direct lookup of clicks from double map
     }
     DONE: {
         * Remove list of transitions, keep them in nodes
@@ -23,6 +22,7 @@ REBOL [
         * Order of transitions.
         * Look over update order
         * Export to pdf /2019-07-09
+        * Direct lookup of clicks from double map
     }
 ]
 
@@ -247,6 +247,7 @@ state-object: make object! [
         update-canvas
     ]
 ]
+
 new-id: does [
     ; Three first bytes are for identifying the object to which it belongs.
     ; the last is set by the object and is for specifying different parts of the object.
@@ -281,8 +282,14 @@ starting-object: make state-object [
     to-transitions: from-transitions: []
 
     draw-code: [
-        fill-pen pencolor  pen pencolor
+        fill-pen pencolor  pen none
         circle position radius
+    ]
+    select-code: [
+        pen none
+        fill-pen select-id/face
+        translate position
+        circle 0x0 radius
     ]
     radius: 5
     update-graphics: func [][
@@ -322,7 +329,11 @@ new-starting-node: func [
     /local
         node
 ][
-    node: make starting-object [ id: new-id position: pos ]
+    node: make starting-object [
+        id: new-id
+        position: pos
+        prepare-id-numbers
+    ]
     new-transition [ from-state: node to-state: state ]
     change/part states reduce [ node/id node ] 2
     node
@@ -336,6 +347,11 @@ transition-object: make object! [
     to-state: none
     order: 1
     order-text: to-string order
+
+    select-id: [
+        arrow 0.0.3
+        label 0.0.4
+    ]
 
     draw-code: [
         pen arrow-color 
@@ -353,6 +369,13 @@ transition-object: make object! [
         font fonts/transition-clause
         translate knot1
         text vectorial 0x0 transition-clause
+    ]
+    select-code: [
+        pen select-id/arrow
+        line-width 2
+        fill-pen none
+        arrow 1x0
+        curve  from-pos knot1 knot2 to-pos
     ]
     from-pos: 0x0
     to-pos: 0x0
@@ -446,7 +469,7 @@ new-transition: func [
     tran
 ]
 
-states: copy [ none none ]
+states: reduce [ none none ]
 
 properties-dialog: func [ object ][
     properties/pane: layout compose object/properties-layout
@@ -618,14 +641,14 @@ find-mouse-hit-value: func [ pos ][
     pick get-select-image pos
 ]
 find-mouse-hit: func [ objects pos ][
-    select objects find-mouse-hit-value pos
+    select objects probe find-mouse-hit-value pos
 ]
 
 make object! [
     current-selection: none
     ref-pos: none
     set 'move-state func [ new-pos /local ][
-        if all [ current-selection current-selection/type = 'state ] [
+        if all [ current-selection find [ state start ] current-selection/type ] [
             current-selection/position: (transformation/face-to-canvas new-pos) - ref-pos
             update-transitions 
         ]
@@ -839,10 +862,6 @@ export: func [
 ]
     
 
-states: copy [
-]
-
-
 update-canvas
 
 simulate-sm: func [ 
@@ -1011,7 +1030,7 @@ handle-events: func [
         under-mouse
         hit
 ][
-    local: [ over-handler none state-from none state-to none ]  ; Static variables
+    local: [ over-handler none state-to none ]  ; Static variables
     system/view/focal-face: face
     system/view/caret: face/text
     mouse-pos: event/offset
@@ -1027,7 +1046,17 @@ handle-events: func [
                 ]
                 hit/3 = 0 [ ; state
                     select-object select states hit
-                    properties-dialog selected
+                    if selected [ 
+                        properties-dialog selected
+                    ]
+                    local/over-handler: :move-state
+                    show [ canvas properties]
+                ]       
+                hit/3 = 1 [ ; state
+                    select-object select states hit
+                    if selected [ 
+                        properties-dialog selected
+                    ]
                     local/over-handler: :move-state
                     show [ canvas properties]
                 ]       
@@ -1041,8 +1070,6 @@ handle-events: func [
             show face
         ]
         alt-down [
-            local/state-from: find-mouse-hit states mouse-pos
-            local/over-handler: none
         ]
         key [
             mouse-pos: event/offset - win-offset? face
@@ -1071,7 +1098,8 @@ handle-events: func [
                 ]
                 #"b" [ ; place an init marker
                     if all [
-                                selected selected/type = 'state 
+                                selected
+                                selected/type = 'state 
                                 0.0.0 = find-mouse-hit-value mouse-pos
                                 not states/1
                     ] [
