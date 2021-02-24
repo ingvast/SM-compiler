@@ -1,109 +1,30 @@
 SM-COMPILER
 format 0.1
-Save-date 24-May-2019/8:14:52+2:00
+Save-date 22-Oct-2020/18:18:28+2:00
 
 States
 [
-	name:	"Init"
-	id:	321778434
-	position:	179x80
-	entry-code:	{set-color: func [ 
-  o color
-][
-   o/effect/draw/2: color
-   show o
-]}
-	exit-code:	{view/new layout [
-style light
-   box 50x50 effect[draw[
-       fill-pen none pen none
-       circle 25x25 22
-]] 
-  below
-  red-light: light 
-  yellow-light: light 
-  green-light: light
-]}
-	radius:	50
-]
-[
-	name:	"Stop"
-	id:	1009293380
-	position:	369x103
-	entry-code:	"set-color red-light red"
+	name:	"S55.125.129.0"
+	id:	55.125.129.0
+	position:	176x275
+	entry-code:	""
 	exit-code:	""
 	radius:	50
 ]
 [
-	name:	"Soon drive"
-	id:	271629288
-	position:	528x235
-	entry-code:	"^/set-color yellow-light yellow"
-	exit-code:	{yellow-light/state:
-red-light/state: off
-show [ 
-    yellow-light
-    red-light
-]
-set-color yellow-light none
-set-color red-light none}
+	name:	"S18.123.84.0"
+	id:	18.123.84.0
+	position:	329x123
+	entry-code:	""
+	exit-code:	""
 	radius:	50
 ]
 [
-	name:	"Free to drive"
-	id:	733244409
-	position:	399x407
-	entry-code:	"^/set-color green-light green"
-	exit-code:	"^/set-color green-light none"
+	name:	"S34.16.185.0"
+	id:	34.16.185.0
+	position:	392x386
+	entry-code:	""
+	exit-code:	""
 	radius:	50
-]
-[
-	name:	"Stop if possible"
-	id:	281489611
-	position:	252x262
-	entry-code:	"set-color yellow-light  yellow "
-	exit-code:	"^/set-color yellow-light none"
-	radius:	50
-]
-Starting
-[
-	id:	203174360
-	position:	76x23
 ]
 Transitions
-[
-	transition-clause:	""
-	label:	""
-	from-state:	203174360
-	to-state:	321778434
-]
-[
-	transition-clause:	""
-	label:	""
-	from-state:	321778434
-	to-state:	1009293380
-]
-[
-	transition-clause:	""
-	label:	""
-	from-state:	1009293380
-	to-state:	271629288
-]
-[
-	transition-clause:	""
-	label:	""
-	from-state:	271629288
-	to-state:	733244409
-]
-[
-	transition-clause:	""
-	label:	""
-	from-state:	733244409
-	to-state:	281489611
-]
-[
-	transition-clause:	"t > 0:0:1"
-	label:	"t > 1"
-	from-state:	281489611
-	to-state:	1009293380
-]

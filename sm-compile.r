@@ -377,6 +377,15 @@ transition-object: make object! [
         arrow 1x0
         curve  from-pos knot1 knot2 to-pos
     ]
+    prepare-id-numbers: func [ /local v ][
+        forall select-id [
+            v: id
+            v/3: select-id/2/3
+            select-id/2: v
+            select-id: next select-id
+        ]
+    ]
+
     from-pos: 0x0
     to-pos: 0x0
     knot1: knot2: 0x0
@@ -457,19 +466,26 @@ new-transition: func [
     spec
     /local tran
 ][
-    tran: make transition-object spec
+    tran: make transition-object [
+        id: new-id
+        prepare-id-numbers
+    ]
+    tran: make tran spec
+    
     if id? tran/from-state [ tran/from-state: select states tran/from-state ]
     if id? tran/to-state [ tran/to-state: select states tran/to-state ]
     append tran/from-state/from-transitions tran
     append tran/to-state/to-transitions     tran
 
     tran/order: length? tran/from-state/from-transitions
+    repend/only transitions [ tran/id tran ]
 
     tran/update-graphics
     tran
 ]
 
 states: reduce [ none none ]
+transitions: copy []
 
 properties-dialog: func [ object ][
     properties/pane: layout compose object/properties-layout
