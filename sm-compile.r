@@ -960,7 +960,7 @@ simulate-sm: func [
 ]
 
 
-view/new layout [
+view/new/options/title lay: layout [
     across 
     origin 0x0 space 0x0
     canvas: box ivory 800x800 "" top left
@@ -973,42 +973,77 @@ view/new layout [
             ] ]
     properties: panel 150x800 [] edge [ size: 1x1 color: black ]
     return
-    btn "New" [
-        states: reduce [ none none ]
-        select-object none
-        transformation/offset: 0x0 transformation/scale: 1
-        update-canvas
-        show [ canvas properties ]
-    ]
-    btn "Open" #"^o" [
-        filename: request-file/title/filter/keep/only "Open state machine" "OK" "*.sm" 
-        if filename [
-            load-sm filename
+    buttons: panel [
+        across
+        btn "New" [
+            states: reduce [ none none ]
+            select-object none
             transformation/offset: 0x0 transformation/scale: 1
             update-canvas
             show [ canvas properties ]
         ]
+        btn "Open" #"^o" [
+            filename: request-file/title/filter/keep/only "Open state machine" "OK" "*.sm" 
+            if filename [
+                load-sm filename
+                transformation/offset: 0x0 transformation/scale: 1
+                update-canvas
+                show [ canvas properties ]
+            ]
+        ]
+        btn "Save" #"^s" [
+            filename: request-file/title/filter/keep/only/save "Save state machine" "OK" "*.sm" 
+            if filename [
+                unless find filename "." [ append filename ".sm" ]
+                save-sm filename
+            ]
+        ]
+        btn "Quit" #"^q" [unview]
+        
+        btn "Export model" [ export 'rebol none ]
+        btn "PDF" [
+                pdf-file: request-file/title/filter/keep/only/save "Save pdf" "OK" "*.pdf"
+                if pdf-file [
+                    unless find pdf-file "." [ append pdf-file ".sm" ]
+                    write pdf-file pdf-lib/face-to-pdf canvas
+                ]
+        ]
+                    
+        btn "Run"  [ simulate-sm ]
     ]
-    btn "Save" #"^s" [
-        filename: request-file/title/filter/keep/only/save "Save state machine" "OK" "*.sm" 
-        if filename [
-            unless find filename "." [ append filename ".sm" ]
-            save-sm filename
+] [ resize ] "State machine"
+
+set-main-layout: func [ size ][
+    canvas/size: size - as-pair properties/size/x buttons/size/y
+    buttons/offset: as-pair 0 canvas/size/y
+    properties/offset: as-pair canvas/size/x 0
+    properties/size/y: face/size/y
+]
+    
+
+lay/feel: make lay/feel [
+    detect: func [face event][
+        case [
+            all [
+                event/type = 'key
+                face: find-key-face face event/key
+            ] [
+                    if get in face 'action [do-face face event/key]
+                    none
+            ]
+            event/type = 'resize [
+                set-main-layout face/size
+                print "Resizing"
+                show face
+                none
+            ]
+            true [
+                event
+            ]
         ]
     ]
-    btn "Quit" #"^q" [unview]
-    
-    btn "Export model" [ export 'rebol none ]
-    btn "PDF" [
-            pdf-file: request-file/title/filter/keep/only/save "Save pdf" "OK" "*.pdf"
-            if pdf-file [
-                unless find pdf-file "." [ append pdf-file ".sm" ]
-                write pdf-file pdf-lib/face-to-pdf canvas
-            ]
-    ]
-                
-    btn "Run"  [ simulate-sm ]
 ]
+
 
 select-box: make face [
     size: canvas/size
