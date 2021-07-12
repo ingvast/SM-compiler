@@ -24,6 +24,10 @@ REBOL [
         * Export to pdf /2019-07-09
         * Direct lookup of clicks from double map
     }
+    
+    BUGS: {
+        * drawing-transitions does not seem to be used
+    }
 ]
 
 {
@@ -648,6 +652,7 @@ update-canvas: does [
     ] ]
     for-transition t [
         append drawing-states reduce[ 'push t/draw-code ]
+        append select-states reduce [ 'push t/select-code ]
     ]
     update-states states
     update-transitions 
@@ -1017,7 +1022,7 @@ set-main-layout: func [ size ][
     canvas/size: size - as-pair properties/size/x buttons/size/y
     buttons/offset: as-pair 0 canvas/size/y
     properties/offset: as-pair canvas/size/x 0
-    properties/size/y: face/size/y
+    properties/size/y: canvas/size/y
 ]
     
 
