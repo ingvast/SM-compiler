@@ -92,6 +92,34 @@ fonts: context [
     transition-order: make face/font [ size: 8 ]
 ]
 
+graphics-object!: make object! [
+    id: none ; a color
+    type: 'graphics
+    owner: none ; A state-object or group
+    line-color: black
+    fill-color: none
+    draw-code: [
+    ]
+    select-code: [
+    ]
+]
+
+shape-object!: make graphics-object! [
+]
+
+text-object!: make graphics-object! [
+    value: ""
+    font-name: "Arial"
+    font-size: 12
+]
+
+group-object!: make object! [
+    children: []
+    init: does [ children: copy [] ]
+    append: func [ objects ][ system/words/append children objects ]
+    remove: func [ object ][ system/words/replace children object [] ]
+]
+
 
 state-object: make object! [
     type: 'state
